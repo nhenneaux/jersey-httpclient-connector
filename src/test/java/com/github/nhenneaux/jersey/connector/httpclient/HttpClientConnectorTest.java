@@ -118,6 +118,9 @@ class HttpClientConnectorTest {
             }
         }).get(2, TimeUnit.SECONDS);
 
+        await().atMost(Duration.ofSeconds(1L))
+                .until(() -> objectAtomicReference.get() != null);
+
         assertSame(response, objectAtomicReference.get());
         assertEquals(200, response.getStatus());
         assertEquals(200, objectAtomicReference.get().getStatus());
