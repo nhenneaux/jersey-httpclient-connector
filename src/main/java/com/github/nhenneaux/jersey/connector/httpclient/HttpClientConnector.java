@@ -8,6 +8,8 @@ import org.glassfish.jersey.client.spi.Connector;
 import org.glassfish.jersey.message.internal.Statuses;
 
 import javax.ws.rs.ProcessingException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.core.Configuration;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +42,13 @@ public class HttpClientConnector implements Connector {
 
     public HttpClientConnector(HttpClient httpClient) {
         this.httpClient = httpClient;
+    }
+
+    public HttpClientConnector(Client jaxRsClient, Configuration configuration) {
+        this.httpClient = HttpClient.newBuilder()
+                .sslContext(jaxRsClient.getSslContext())
+                .connectTimeout(Duration.of((Integer) configuration.getProperty(ClientProperties.CONNECT_TIMEOUT), ChronoUnit.MILLIS))
+                .build();
     }
 
     @Override
