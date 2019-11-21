@@ -21,6 +21,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
@@ -69,7 +70,8 @@ public class HttpClientConnector implements Connector {
             }
             return toJerseyResponse(clientRequest, inputStreamHttpResponse);
         }
-        final int readTimeoutInMilliseconds = (Integer) clientRequest.getClient().getConfiguration().getProperty(ClientProperties.READ_TIMEOUT);
+        final int readTimeoutInMilliseconds = Optional.ofNullable(clientRequest.getClient().getConfiguration().getProperty(ClientProperties.READ_TIMEOUT))
+                .map(Integer.class::cast).orElse(0);
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = streamRequestBody(clientRequest, requestBuilder);
 
         final HttpResponse<InputStream> inputStreamHttpResponse = waitResponse(httpResponseCompletableFuture, readTimeoutInMilliseconds);
@@ -80,7 +82,7 @@ public class HttpClientConnector implements Connector {
     private HttpResponse<InputStream> waitResponse(CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture, int readTimeoutInMilliseconds) {
         final HttpResponse<InputStream> inputStreamHttpResponse;
         try {
-            inputStreamHttpResponse = httpResponseCompletableFuture.get(readTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
+            inputStreamHttpResponse = readTimeoutInMilliseconds == 0 ? httpResponseCompletableFuture.get() : httpResponseCompletableFuture.get(readTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
         } catch (InterruptedException e) {
