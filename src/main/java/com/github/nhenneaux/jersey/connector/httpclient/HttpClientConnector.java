@@ -26,6 +26,8 @@ import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class HttpClientConnector implements Connector {
 
@@ -67,23 +69,25 @@ public class HttpClientConnector implements Connector {
             }
             return toJerseyResponse(clientRequest, inputStreamHttpResponse);
         }
-
+        final int readTimeoutInMilliseconds = (Integer) clientRequest.getClient().getConfiguration().getProperty(ClientProperties.READ_TIMEOUT);
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = streamRequestBody(clientRequest, requestBuilder);
 
-        final HttpResponse<InputStream> inputStreamHttpResponse = waitResponse(httpResponseCompletableFuture);
+        final HttpResponse<InputStream> inputStreamHttpResponse = waitResponse(httpResponseCompletableFuture, readTimeoutInMilliseconds);
 
         return toJerseyResponse(clientRequest, inputStreamHttpResponse);
     }
 
-    private HttpResponse<InputStream> waitResponse(CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture) {
+    private HttpResponse<InputStream> waitResponse(CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture, int readTimeoutInMilliseconds) {
         final HttpResponse<InputStream> inputStreamHttpResponse;
         try {
-            inputStreamHttpResponse = httpResponseCompletableFuture.get();
+            inputStreamHttpResponse = httpResponseCompletableFuture.get(readTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ProcessingException("The sending process was interrupted", e);
+        } catch (TimeoutException e) {
+            throw new ProcessingException("No response received within " + readTimeoutInMilliseconds + "ms.", e);
         }
         return inputStreamHttpResponse;
     }
