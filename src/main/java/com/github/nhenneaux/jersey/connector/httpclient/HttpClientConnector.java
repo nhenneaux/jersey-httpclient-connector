@@ -123,9 +123,9 @@ public class HttpClientConnector implements Connector {
 
     private CompletableFuture<HttpResponse<InputStream>> streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder) {
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture;
-        try (final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-             final PipedInputStream pipedInputStream = new PipedInputStream(pipedOutputStream)
-        ) {
+        try {
+            final PipedOutputStream pipedOutputStream = new PipedOutputStream();
+            final PipedInputStream pipedInputStream = new PipedInputStream(pipedOutputStream);
             clientRequest.setStreamProvider(contentLength -> pipedOutputStream);
             requestBuilder.method(clientRequest.getMethod(), HttpRequest.BodyPublishers.ofInputStream(() -> pipedInputStream));
 
