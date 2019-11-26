@@ -20,10 +20,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -32,15 +29,6 @@ import java.util.concurrent.TimeoutException;
 
 public class HttpClientConnector implements Connector {
 
-    private static final Set<String> DISALLOWED_HEADERS_SET;
-
-    static {
-        // A case insensitive TreeSet of strings.
-        TreeSet<String> treeSet = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        treeSet.addAll(Set.of("connection", "content-length",
-                "date", "expect", "from", "host", "upgrade", "via", "warning"));
-        DISALLOWED_HEADERS_SET = Collections.unmodifiableSet(treeSet);
-    }
     private final HttpClient httpClient;
 
     public HttpClientConnector(HttpClient httpClient) {
@@ -134,9 +122,9 @@ public class HttpClientConnector implements Connector {
 
     private CompletableFuture<HttpResponse<InputStream>> streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder) {
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture;
-        try (final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-             final PipedInputStream pipedInputStream = new PipedInputStream(pipedOutputStream)
-        ) {
+        try {
+            final PipedOutputStream pipedOutputStream = new PipedOutputStream();
+            final PipedInputStream pipedInputStream = new PipedInputStream(pipedOutputStream);
             clientRequest.setStreamProvider(contentLength -> pipedOutputStream);
             requestBuilder.method(clientRequest.getMethod(), HttpRequest.BodyPublishers.ofInputStream(() -> pipedInputStream));
 
@@ -152,11 +140,7 @@ public class HttpClientConnector implements Connector {
     private HttpRequest.Builder toHttpClientRequestBuilder(ClientRequest clientRequest) {
         final HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
         // TODO handle changed headers after pushed of payload
-        clientRequest.getRequestHeaders()
-                .entrySet()
-                .stream()
-                .filter(e -> !DISALLOWED_HEADERS_SET.contains(e.getKey()))
-                .forEach(entry -> entry.getValue().forEach(value -> requestBuilder.header(entry.getKey(), value)));
+        clientRequest.getRequestHeaders().forEach((key, clientRequestValue) -> clientRequestValue.forEach(value -> requestBuilder.header(key, value)));
         requestBuilder.uri(clientRequest.getUri());
         final Object readTimeoutInMilliseconds = clientRequest.getConfiguration().getProperties().get(ClientProperties.READ_TIMEOUT);
         if (isGreaterThanZero(readTimeoutInMilliseconds)) {
@@ -170,9 +154,8 @@ public class HttpClientConnector implements Connector {
         return "Java HttpClient";
     }
 
-
     @Override
     public void close() {
-// Nothing to close
+           // Nothing to close
     }
 }
