@@ -158,11 +158,7 @@ public class HttpClientConnector implements Connector {
 
     @Override
     public void close() {
-// Nothing to close
+        // Nothing to close
     }
 
-
-    interface CloseClient extends AutoCloseable {
-        void close();
-    }
 }
