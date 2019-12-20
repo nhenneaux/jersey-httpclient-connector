@@ -30,6 +30,7 @@ import java.util.concurrent.TimeoutException;
 public class HttpClientConnector implements Connector {
 
 
+
     private final HttpClient httpClient;
 
     public HttpClientConnector(HttpClient httpClient) {
@@ -52,7 +53,7 @@ public class HttpClientConnector implements Connector {
             try {
                 inputStreamHttpResponse = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream());
             } catch (IOException e) {
-                throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);
+                throw new ProcessingException("The HTTP exchange failed with I/O error, " + e.getMessage(), e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new ProcessingException("The sending process was interrupted", e);
@@ -131,10 +132,18 @@ public class HttpClientConnector implements Connector {
 
             httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream());
 
-            clientRequest.writeEntity();
         } catch (IOException e) {
             throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);
         }
+        CompletableFuture.runAsync(() -> {
+            try {
+                clientRequest.writeEntity();
+
+            } catch (IOException e) {
+                throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);
+            }
+        });
+
         return httpResponseCompletableFuture;
     }
 
@@ -146,7 +155,7 @@ public class HttpClientConnector implements Connector {
         requestBuilder.uri(clientRequest.getUri());
         final Object readTimeoutInMilliseconds = clientRequest.getConfiguration().getProperties().get(ClientProperties.READ_TIMEOUT);
         if (isGreaterThanZero(readTimeoutInMilliseconds)) {
-            requestBuilder.timeout(Duration.of((Integer) readTimeoutInMilliseconds, ChronoUnit.MILLIS));
+            return requestBuilder.timeout(Duration.of((Integer) readTimeoutInMilliseconds, ChronoUnit.MILLIS));
         }
         return requestBuilder;
     }

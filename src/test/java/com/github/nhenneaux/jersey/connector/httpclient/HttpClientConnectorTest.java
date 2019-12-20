@@ -1,11 +1,15 @@
 package com.github.nhenneaux.jersey.connector.httpclient;
 
 import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.media.multipart.MultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.media.multipart.file.FileDataBodyPart;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
+import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -155,6 +159,16 @@ class HttpClientConnectorTest {
 
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
+    }
+
+    @Test
+    @Timeout(2L)
+    void shouldWorkWithJaxRsClientWithJsonPostAndTimeout() {
+        final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
+        client.property(ClientProperties.READ_TIMEOUT, 100);
+        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
+        assertEquals(TimeoutException.class, processingException.getCause().getClass());
     }
 
     @Test
