@@ -195,9 +195,34 @@ class HttpClientConnectorTest {
                 .path("200")
                 .queryParam("sleep", "500");
 
-        long start = System.nanoTime();
         final Response response = target.request().get();
-        final long durationInMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        // Then
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    @Timeout(2L)
+    void shouldWorkWithJaxRsClientWithLongBuilderTimeoutFailure() {
+        final Client client = ClientBuilder.newBuilder().readTimeout(1L, TimeUnit.SECONDS).withConfig(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build()))).build();
+        final WebTarget target = client.target("https://httpstat.us")
+                .path("200")
+                .queryParam("sleep", "5000");
+
+        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, () -> target.request().get());
+        assertEquals(HttpTimeoutException.class, processingException.getCause().getClass());
+
+    }
+
+    @Test
+    @Timeout(2L)
+    void shouldWorkWithJaxRsClientWithLongBuilderTimeoutSuccess() {
+        final Client client = ClientBuilder.newBuilder().readTimeout(2L, TimeUnit.SECONDS).withConfig(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build()))).build();
+        final WebTarget target = client.target("https://httpstat.us")
+                .path("200")
+                .queryParam("sleep", "500");
+
+        final Response response = target.request().get();
 
         // Then
         assertEquals(200, response.getStatus());
