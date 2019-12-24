@@ -202,9 +202,12 @@ class HttpClientConnectorTest {
     }
 
     @Test
-    @Timeout(2L)
+    @Timeout(3L)
     void shouldWorkWithJaxRsClientWithLongBuilderTimeoutFailure() {
-        final Client client = ClientBuilder.newBuilder().readTimeout(1L, TimeUnit.SECONDS).withConfig(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build()))).build();
+        final Client client = ClientBuilder.newBuilder()
+                .withConfig(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())))
+                .readTimeout(1L, TimeUnit.SECONDS)
+                .build();
         final WebTarget target = client.target("https://httpstat.us")
                 .path("200")
                 .queryParam("sleep", "5000");
@@ -215,9 +218,12 @@ class HttpClientConnectorTest {
     }
 
     @Test
-    @Timeout(2L)
+    @Timeout(3L)
     void shouldWorkWithJaxRsClientWithLongBuilderTimeoutSuccess() {
-        final Client client = ClientBuilder.newBuilder().readTimeout(2L, TimeUnit.SECONDS).withConfig(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build()))).build();
+        final Client client = ClientBuilder.newBuilder()
+                .withConfig(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())))
+                .readTimeout(2L, TimeUnit.SECONDS)
+                .build();
         final WebTarget target = client.target("https://httpstat.us")
                 .path("200")
                 .queryParam("sleep", "500");
