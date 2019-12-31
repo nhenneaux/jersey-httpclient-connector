@@ -166,7 +166,7 @@ class HttpClientConnectorTest {
     @Timeout(2L)
     void shouldWorkWithJaxRsClientWithJsonPostAndShortTimeout() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
-        client.property(ClientProperties.READ_TIMEOUT, 100);
+        client.property(ClientProperties.READ_TIMEOUT, 10);
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
         final Exception expectedException = Assertions.assertThrows(Exception.class, () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
         assertEquals(TimeoutException.class, expectedException.getCause().getClass());
@@ -202,7 +202,7 @@ class HttpClientConnectorTest {
     }
 
     @Test
-    @Timeout(3L)
+    @Timeout(5L)
     void shouldWorkWithJaxRsClientWithLongBuilderTimeoutFailure() {
         final Client client = ClientBuilder.newBuilder()
                 .withConfig(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())))
@@ -218,7 +218,7 @@ class HttpClientConnectorTest {
     }
 
     @Test
-    @Timeout(3L)
+    @Timeout(5L)
     void shouldWorkWithJaxRsClientWithLongBuilderTimeoutSuccess() {
         final Client client = ClientBuilder.newBuilder()
                 .withConfig(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())))
