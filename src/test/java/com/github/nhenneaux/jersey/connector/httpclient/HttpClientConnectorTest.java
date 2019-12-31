@@ -168,8 +168,8 @@ class HttpClientConnectorTest {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         client.property(ClientProperties.READ_TIMEOUT, 100);
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
-        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
-        assertEquals(TimeoutException.class, processingException.getCause().getClass());
+        final Exception expectedException = Assertions.assertThrows(Exception.class, () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
+        assertEquals(TimeoutException.class, expectedException.getCause().getClass());
     }
 
     @Test
