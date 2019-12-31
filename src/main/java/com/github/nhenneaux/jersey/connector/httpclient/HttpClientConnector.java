@@ -29,8 +29,6 @@ import java.util.concurrent.TimeoutException;
 
 public class HttpClientConnector implements Connector {
 
-
-
     private final HttpClient httpClient;
 
     public HttpClientConnector(HttpClient httpClient) {
@@ -38,9 +36,13 @@ public class HttpClientConnector implements Connector {
     }
 
     public HttpClientConnector(Client jaxRsClient, Configuration configuration) {
-        this.httpClient = HttpClient.newBuilder()
-                .sslContext(jaxRsClient.getSslContext())
-                .connectTimeout(Duration.of((Integer) configuration.getProperty(ClientProperties.CONNECT_TIMEOUT), ChronoUnit.MILLIS))
+        final HttpClient.Builder builder = HttpClient.newBuilder()
+                .sslContext(jaxRsClient.getSslContext());
+        this.httpClient = Optional.ofNullable(configuration.getProperty(ClientProperties.CONNECT_TIMEOUT))
+                .map(Integer.class::cast)
+                .map(connectTimeoutInMillis -> Duration.of(connectTimeoutInMillis, ChronoUnit.MILLIS))
+                .map(builder::connectTimeout)
+                .orElse(builder)
                 .build();
     }
 
@@ -140,7 +142,6 @@ public class HttpClientConnector implements Connector {
         CompletableFuture.runAsync(() -> {
             try {
                 clientRequest.writeEntity();
-
             } catch (IOException e) {
                 throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);
             }

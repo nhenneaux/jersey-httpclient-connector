@@ -91,6 +91,14 @@ class HttpClientConnectorTest {
     }
 
     @Test
+    void shouldWorkWithJaxRsClientForStatusWithMethodReference() {
+        final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider(HttpClientConnector::new));
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
+        final Response response = target.request().get();
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
     void shouldWorkWithJaxRsClientForStatusAsync() throws InterruptedException, ExecutionException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
