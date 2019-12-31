@@ -125,9 +125,9 @@ public class HttpClientConnector implements Connector {
     private CompletableFuture<HttpResponse<InputStream>> streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder) {
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture;
         try {
-            @SuppressWarnings("squid:S2095") // The stream cannot be clsoed here and is closed in Jersey client.
+            @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
             final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-            @SuppressWarnings("squid:S2095") // The stream cannot be clsoed here and is closed in Jersey client.
+            @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
             final PipedInputStream pipedInputStream = new PipedInputStream(pipedOutputStream);
             clientRequest.setStreamProvider(contentLength -> pipedOutputStream);
             requestBuilder.method(clientRequest.getMethod(), HttpRequest.BodyPublishers.ofInputStream(() -> pipedInputStream));
