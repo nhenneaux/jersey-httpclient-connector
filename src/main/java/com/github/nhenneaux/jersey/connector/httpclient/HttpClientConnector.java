@@ -46,20 +46,33 @@ public class HttpClientConnector implements Connector {
                 .build();
     }
 
+    static boolean isGreaterThanZero(Object object) {
+        return object instanceof Integer && (Integer) object > 0;
+    }
+
+    static HttpResponse<InputStream> handleInterruption(Interruptable interruptable) {
+        try {
+            return interruptable.execute();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ProcessingException("The sending process was interrupted", e);
+        }
+    }
+
     @Override
     public ClientResponse apply(ClientRequest clientRequest) {
         final HttpRequest.Builder requestBuilder = toHttpClientRequestBuilder(clientRequest);
         if (clientRequest.getEntity() == null) {
             requestBuilder.method(clientRequest.getMethod(), HttpRequest.BodyPublishers.noBody());
-            final HttpResponse<InputStream> inputStreamHttpResponse;
-            try {
-                inputStreamHttpResponse = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream());
-            } catch (IOException e) {
-                throw new ProcessingException("The HTTP exchange failed with I/O error, " + e.getMessage(), e);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new ProcessingException("The sending process was interrupted", e);
-            }
+
+            final HttpResponse<InputStream> inputStreamHttpResponse = handleInterruption(() -> {
+                try {
+                    return httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream());
+                } catch (IOException e) {
+                    throw new ProcessingException("The HTTP exchange failed with I/O error, " + e.getMessage(), e);
+                }
+            });
+
             return toJerseyResponse(clientRequest, inputStreamHttpResponse);
         }
         final int readTimeoutInMilliseconds = Optional.ofNullable(clientRequest.getClient().getConfiguration().getProperty(ClientProperties.READ_TIMEOUT))
@@ -72,18 +85,15 @@ public class HttpClientConnector implements Connector {
     }
 
     private HttpResponse<InputStream> waitResponse(CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture, int readTimeoutInMilliseconds) {
-        final HttpResponse<InputStream> inputStreamHttpResponse;
-        try {
-            inputStreamHttpResponse = readTimeoutInMilliseconds == 0 ? httpResponseCompletableFuture.get() : httpResponseCompletableFuture.get(readTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
-        } catch (ExecutionException e) {
-            throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProcessingException("The sending process was interrupted", e);
-        } catch (TimeoutException e) {
-            throw new ProcessingException("No response received within " + readTimeoutInMilliseconds + "ms.", e);
-        }
-        return inputStreamHttpResponse;
+        return handleInterruption(() -> {
+            try {
+                return readTimeoutInMilliseconds == 0 ? httpResponseCompletableFuture.get() : httpResponseCompletableFuture.get(readTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
+            } catch (ExecutionException e) {
+                throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
+            } catch (TimeoutException e) {
+                throw new ProcessingException("No response received within " + readTimeoutInMilliseconds + "ms.", e);
+            }
+        });
     }
 
     private ClientResponse toJerseyResponse(ClientRequest clientRequest, HttpResponse<InputStream> inputStreamHttpResponse) {
@@ -94,9 +104,9 @@ public class HttpClientConnector implements Connector {
         return jerseyResponse;
     }
 
-     static boolean isGreaterThanZero(Object object) {
-         return object instanceof Integer && (Integer) object > 0;
-     }
+    interface Interruptable {
+        HttpResponse<InputStream> execute() throws InterruptedException;
+    }
 
     @Override
     public Future<?> apply(ClientRequest clientRequest, AsyncConnectorCallback asyncConnectorCallback) {

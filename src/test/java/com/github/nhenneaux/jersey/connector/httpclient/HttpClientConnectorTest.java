@@ -1,6 +1,5 @@
 package com.github.nhenneaux.jersey.connector.httpclient;
 
-import org.awaitility.Awaitility;
 import org.glassfish.jersey.client.ClientRequest;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +15,9 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -55,7 +56,7 @@ class HttpClientConnectorTest {
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClientConnector.streamRequestBody(clientRequest, requestBuilder);
 
         // Then
-        Awaitility.await()
+        await()
                 .atMost(Duration.ofSeconds(5L))
                 .until(httpResponseCompletableFuture::isDone);
         assertSame(httpResponse, httpResponseCompletableFuture.get());
@@ -83,7 +84,7 @@ class HttpClientConnectorTest {
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClientConnector.streamRequestBody(clientRequest, requestBuilder);
 
         // Then
-        Awaitility.await()
+        await()
                 .atMost(Duration.ofSeconds(5L))
                 .until(httpResponseCompletableFuture::isDone);
         assertTrue(httpResponseCompletableFuture.isCompletedExceptionally());
@@ -113,11 +114,32 @@ class HttpClientConnectorTest {
     }
 
     @Test
-    void ShouldThrowWhenConnectingStreamAlreadyConnected() throws IOException {
+    void shouldThrowWhenConnectingStreamAlreadyConnected() throws IOException {
         final PipedInputStream pipedInputStream = new PipedInputStream();
         final PipedOutputStream pipedOutputStream = new PipedOutputStream();
         pipedOutputStream.connect(pipedInputStream);
         final ProcessingException expectedException = assertThrows(ProcessingException.class, () -> HttpClientConnector.connectStream(pipedOutputStream, pipedInputStream));
         assertEquals("The input stream cannot be connected to the output stream, Already connected", expectedException.getMessage());
+    }
+
+    @Test
+    void shouldHandleInterruption() {
+        final InterruptedException interruptedException = new InterruptedException(UUID.randomUUID().toString());
+        final Thread thread = new Thread(() -> HttpClientConnector.handleInterruption(() -> {
+            throw interruptedException;
+        }));
+        AtomicReference<Throwable> expectedInterruptedException = new AtomicReference<>();
+        thread.setUncaughtExceptionHandler((t, e) -> {
+            expectedInterruptedException.set(e);
+        });
+        thread.start();
+
+        await()
+                .atMost(Duration.ofSeconds(2L))
+                .until(() -> !thread.isAlive());
+        assertFalse(thread::isAlive);
+        assertEquals(ProcessingException.class, expectedInterruptedException.get().getClass());
+        assertSame(interruptedException, expectedInterruptedException.get().getCause());
+
     }
 }
