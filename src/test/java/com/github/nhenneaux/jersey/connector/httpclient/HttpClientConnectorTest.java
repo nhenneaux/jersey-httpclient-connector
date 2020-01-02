@@ -164,7 +164,7 @@ class HttpClientConnectorTest {
         responseFuture.completeExceptionally(expectedException);
 
         // When
-        final ProcessingException processingException = assertThrows(ProcessingException.class, () -> httpClientConnector.waitResponse(responseFuture, 0));
+        final ProcessingException processingException = assertThrows(ProcessingException.class, () -> httpClientConnector.waitResponse(responseFuture, 10));
 
         // Then
         assertEquals("The async sending process failed with error, java.lang.Exception: " + message, processingException.getMessage());
