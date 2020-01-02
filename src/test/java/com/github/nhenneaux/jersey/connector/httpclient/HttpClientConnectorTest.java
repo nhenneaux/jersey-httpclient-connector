@@ -21,6 +21,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.awaitility.Awaitility.await;
@@ -169,6 +171,38 @@ class HttpClientConnectorTest {
         // Then
         assertEquals("The async sending process failed with error, java.lang.Exception: " + message, processingException.getMessage());
         assertSame(expectedException, processingException.getCause().getCause());
+    }
+
+    @Test
+    void shouldUseTimeoutWhenNonZeroReadTimeout() throws InterruptedException, ExecutionException, TimeoutException {
+        // Given
+        final HttpClient httpClient = mock(HttpClient.class);
+        @SuppressWarnings("unchecked") final CompletableFuture<HttpResponse<InputStream>> responseFuture = mock(CompletableFuture.class);
+
+        final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
+
+
+        // When
+        httpClientConnector.waitResponse(responseFuture, 10);
+
+        // Then
+        verify(responseFuture).get(10, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    void shouldNotUseTimeoutGetWhenZeroReadTimeout() throws InterruptedException, ExecutionException, TimeoutException {
+        // Given
+        final HttpClient httpClient = mock(HttpClient.class);
+        @SuppressWarnings("unchecked") final CompletableFuture<HttpResponse<InputStream>> responseFuture = mock(CompletableFuture.class);
+
+        final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
+
+
+        // When
+        httpClientConnector.waitResponse(responseFuture, 0);
+
+        // Then
+        verify(responseFuture).get();
     }
 
     @Test
