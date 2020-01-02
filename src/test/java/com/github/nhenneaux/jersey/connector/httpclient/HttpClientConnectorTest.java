@@ -4,8 +4,11 @@ import org.awaitility.Awaitility;
 import org.glassfish.jersey.client.ClientRequest;
 import org.junit.jupiter.api.Test;
 
+import javax.ws.rs.ProcessingException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -15,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,8 +53,8 @@ class HttpClientConnectorTest {
         when(requestBuilderWithMethod.build()).thenReturn(httpRequest);
         // When
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClientConnector.streamRequestBody(clientRequest, requestBuilder);
-        // Then
 
+        // Then
         Awaitility.await()
                 .atMost(Duration.ofSeconds(5L))
                 .until(httpResponseCompletableFuture::isDone);
@@ -86,5 +90,34 @@ class HttpClientConnectorTest {
         final ExecutionException executionException = assertThrows(ExecutionException.class, httpResponseCompletableFuture::get);
         assertEquals("The sending process failed with I/O error, " + ioException.getMessage(), executionException.getCause().getMessage());
         assertSame(ioException, executionException.getCause().getCause());
+    }
+
+    @Test
+    void shouldIgnoreObjectsInIsGreaterThanZero() {
+        assertFalse(HttpClientConnector.isGreaterThanZero(new Object()));
+    }
+
+    @Test
+    void shouldHandleNegativeInIsGreaterThanZero() {
+        assertFalse(HttpClientConnector.isGreaterThanZero(-1));
+    }
+
+    @Test
+    void shouldHandleZeroInIsGreaterThanZero() {
+        assertFalse(HttpClientConnector.isGreaterThanZero(0));
+    }
+
+    @Test
+    void shouldHandlePositiveInIsGreaterThanZero() {
+        assertTrue(HttpClientConnector.isGreaterThanZero(1));
+    }
+
+    @Test
+    void ShouldThrowWhenConnectingStreamAlreadyConnected() throws IOException {
+        final PipedInputStream pipedInputStream = new PipedInputStream();
+        final PipedOutputStream pipedOutputStream = new PipedOutputStream();
+        pipedOutputStream.connect(pipedInputStream);
+        final ProcessingException expectedException = assertThrows(ProcessingException.class, () -> HttpClientConnector.connectStream(pipedOutputStream, pipedInputStream));
+        assertEquals("The input stream cannot be connected to the output stream, Already connected", expectedException.getMessage());
     }
 }

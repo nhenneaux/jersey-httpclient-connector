@@ -94,9 +94,9 @@ public class HttpClientConnector implements Connector {
         return jerseyResponse;
     }
 
-    private boolean isGreaterThanZero(Object object) {
-        return object instanceof Integer && (Integer) object > 0;
-    }
+     static boolean isGreaterThanZero(Object object) {
+         return object instanceof Integer && (Integer) object > 0;
+     }
 
     @Override
     public Future<?> apply(ClientRequest clientRequest, AsyncConnectorCallback asyncConnectorCallback) {
@@ -124,16 +124,20 @@ public class HttpClientConnector implements Connector {
         return clientResponseCompletableFuture;
     }
 
+    static void connectStream(PipedOutputStream pipedOutputStream, PipedInputStream pipedInputStream) {
+        try {
+            pipedInputStream.connect(pipedOutputStream);
+        } catch (IOException e) {
+            throw new ProcessingException("The input stream cannot be connected to the output stream, " + e.getMessage(), e);
+        }
+    }
+
     CompletableFuture<HttpResponse<InputStream>> streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder) {
         @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
         final PipedOutputStream pipedOutputStream = new PipedOutputStream();
         @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
         final PipedInputStream pipedInputStream = new PipedInputStream();
-        try {
-            pipedInputStream.connect(pipedOutputStream);
-        } catch (IOException e) {
-            throw new ProcessingException("The input stream cannot be connected to the output stream " + e.getMessage(), e);
-        }
+        connectStream(pipedOutputStream, pipedInputStream);
         clientRequest.setStreamProvider(contentLength -> pipedOutputStream);
 
         final HttpRequest httpRequest = requestBuilder
