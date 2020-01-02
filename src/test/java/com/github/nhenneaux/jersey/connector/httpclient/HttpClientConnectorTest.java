@@ -1,7 +1,11 @@
 package com.github.nhenneaux.jersey.connector.httpclient;
 
 import org.glassfish.jersey.client.ClientRequest;
+import org.glassfish.jersey.client.ClientResponse;
+import org.glassfish.jersey.client.spi.AsyncConnectorCallback;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.mockito.ArgumentCaptor;
 
 import javax.ws.rs.ProcessingException;
 import java.io.IOException;
@@ -14,7 +18,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.awaitility.Awaitility.await;
@@ -27,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class HttpClientConnectorTest {
@@ -141,5 +148,51 @@ class HttpClientConnectorTest {
         assertEquals(ProcessingException.class, expectedInterruptedException.get().getClass());
         assertSame(interruptedException, expectedInterruptedException.get().getCause());
 
+    }
+
+    @Test
+    @Timeout(1)
+    void shouldHandleExceptionWhenWaitingResponse() {
+        // Given
+        final HttpClient httpClient = mock(HttpClient.class);
+        final CompletableFuture<HttpResponse<InputStream>> responseFuture = new CompletableFuture<>();
+
+        final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
+
+        final String message = UUID.randomUUID().toString();
+        final Exception expectedException = new Exception(message);
+        responseFuture.completeExceptionally(expectedException);
+
+        // When
+        final ProcessingException processingException = assertThrows(ProcessingException.class, () -> httpClientConnector.waitResponse(responseFuture, 0));
+
+        // Then
+        assertEquals("The async sending process failed with error, java.lang.Exception: " + message, processingException.getMessage());
+        assertSame(expectedException, processingException.getCause().getCause());
+    }
+
+    @Test
+    void shouldHandleCallbackOnFailure() {
+        // Given
+        final HttpClient httpClient = mock(HttpClient.class);
+        final CompletableFuture<HttpResponse<InputStream>> responseFuture = new CompletableFuture<>();
+        final String message = UUID.randomUUID().toString();
+        final Exception expectedException = new Exception(message);
+        responseFuture.completeExceptionally(expectedException);
+
+        final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
+
+        final AsyncConnectorCallback asyncConnectorCallback = mock(AsyncConnectorCallback.class);
+        // When
+        final Future<ClientResponse> clientResponseFuture = httpClientConnector.toJerseyResponseWithCallback(null, responseFuture, asyncConnectorCallback);
+
+        // Then
+        assertTrue(clientResponseFuture.isDone());
+
+        final ExecutionException executionException = assertThrows(ExecutionException.class, clientResponseFuture::get);
+        assertSame(expectedException, executionException.getCause());
+        final ArgumentCaptor<CompletionException> completionExceptionArgumentCaptor = ArgumentCaptor.forClass(CompletionException.class);
+        verify(asyncConnectorCallback).failure(completionExceptionArgumentCaptor.capture());
+        assertSame(expectedException, completionExceptionArgumentCaptor.getValue().getCause());
     }
 }

@@ -84,17 +84,17 @@ public class HttpClientConnector implements Connector {
         return toJerseyResponse(clientRequest, inputStreamHttpResponse);
     }
 
-    private HttpResponse<InputStream> waitResponse(CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture, int readTimeoutInMilliseconds) {
-        return handleInterruption(() -> {
-            try {
-                return readTimeoutInMilliseconds == 0 ? httpResponseCompletableFuture.get() : httpResponseCompletableFuture.get(readTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
-            } catch (ExecutionException e) {
-                throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
-            } catch (TimeoutException e) {
-                throw new ProcessingException("No response received within " + readTimeoutInMilliseconds + "ms.", e);
-            }
-        });
-    }
+     HttpResponse<InputStream> waitResponse(CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture, int readTimeoutInMilliseconds) {
+         return handleInterruption(() -> {
+             try {
+                 return readTimeoutInMilliseconds == 0 ? httpResponseCompletableFuture.get() : httpResponseCompletableFuture.get(readTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
+             } catch (ExecutionException e) {
+                 throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
+             } catch (TimeoutException e) {
+                 throw new ProcessingException("No response received within " + readTimeoutInMilliseconds + "ms.", e);
+             }
+         });
+     }
 
     private ClientResponse toJerseyResponse(ClientRequest clientRequest, HttpResponse<InputStream> inputStreamHttpResponse) {
         final Response.StatusType responseStatus = Statuses.from(inputStreamHttpResponse.statusCode());
@@ -122,7 +122,7 @@ public class HttpClientConnector implements Connector {
         return toJerseyResponseWithCallback(clientRequest, httpResponseCompletableFuture, asyncConnectorCallback);
     }
 
-    private Future<?> toJerseyResponseWithCallback(ClientRequest clientRequest, CompletableFuture<HttpResponse<InputStream>> inputStreamHttpResponseFuture, AsyncConnectorCallback asyncConnectorCallback) {
+    Future<ClientResponse> toJerseyResponseWithCallback(ClientRequest clientRequest, CompletableFuture<HttpResponse<InputStream>> inputStreamHttpResponseFuture, AsyncConnectorCallback asyncConnectorCallback) {
         final CompletableFuture<ClientResponse> clientResponseCompletableFuture = inputStreamHttpResponseFuture.thenApply(inputStreamHttpResponse -> toJerseyResponse(clientRequest, inputStreamHttpResponse));
         clientResponseCompletableFuture.whenComplete((response, cause) -> {
             if (cause == null) {
