@@ -1,5 +1,7 @@
 package com.github.nhenneaux.jersey.connector.httpclient;
 
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.ClientRequest;
 import org.glassfish.jersey.client.ClientResponse;
 import org.glassfish.jersey.client.spi.AsyncConnectorCallback;
@@ -7,15 +9,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
+import javax.net.ssl.SSLContext;
 import javax.ws.rs.ProcessingException;
+import javax.ws.rs.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.net.Proxy;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -228,5 +236,21 @@ class HttpClientConnectorTest {
         final ArgumentCaptor<CompletionException> completionExceptionArgumentCaptor = ArgumentCaptor.forClass(CompletionException.class);
         verify(asyncConnectorCallback).failure(completionExceptionArgumentCaptor.capture());
         assertSame(expectedException, completionExceptionArgumentCaptor.getValue().getCause());
+    }
+
+    @Test
+    void shouldConfigureProxy() throws NoSuchAlgorithmException {
+        // Given
+        final ClientConfig configuration = new ClientConfig().property(ClientProperties.PROXY_URI, "https://my.gateway.io:3129");
+        final Client client = mock(Client.class);
+        when(client.getSslContext()).thenReturn(SSLContext.getDefault());
+        // When
+        final HttpClientConnector httpClientConnector = new HttpClientConnector(client, configuration);
+        // Then
+        assertTrue(httpClientConnector.getHttpClient().proxy().isPresent());
+        final List<Proxy> proxies = httpClientConnector.getHttpClient().proxy().orElseThrow().select(URI.create("https://my.service.io"));
+        assertEquals(1, proxies.size());
+        final Proxy proxy = proxies.get(0);
+        assertEquals("my.gateway.io:3129", proxy.address().toString());
     }
 }

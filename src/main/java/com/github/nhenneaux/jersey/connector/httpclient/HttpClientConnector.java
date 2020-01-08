@@ -15,6 +15,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -27,6 +30,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static org.glassfish.jersey.client.ClientProperties.CONNECT_TIMEOUT;
+import static org.glassfish.jersey.client.ClientProperties.PROXY_URI;
+
 public class HttpClientConnector implements Connector {
 
     private final HttpClient httpClient;
@@ -38,7 +44,13 @@ public class HttpClientConnector implements Connector {
     public HttpClientConnector(Client jaxRsClient, Configuration configuration) {
         final HttpClient.Builder builder = HttpClient.newBuilder()
                 .sslContext(jaxRsClient.getSslContext());
-        this.httpClient = Optional.ofNullable(configuration.getProperty(ClientProperties.CONNECT_TIMEOUT))
+
+        Optional.ofNullable(configuration.getProperty(PROXY_URI))
+                .map(String.class::cast)
+                .map(URI::create)
+                .ifPresent(proxyUri -> builder.proxy(ProxySelector.of(InetSocketAddress.createUnresolved(proxyUri.getHost(), proxyUri.getPort()))));
+
+        this.httpClient = Optional.ofNullable(configuration.getProperty(CONNECT_TIMEOUT))
                 .map(Integer.class::cast)
                 .map(connectTimeoutInMillis -> Duration.of(connectTimeoutInMillis, ChronoUnit.MILLIS))
                 .map(builder::connectTimeout)
@@ -176,6 +188,10 @@ public class HttpClientConnector implements Connector {
             return requestBuilder.timeout(Duration.of((Integer) readTimeoutInMilliseconds, ChronoUnit.MILLIS));
         }
         return requestBuilder;
+    }
+
+    public HttpClient getHttpClient() {
+        return httpClient;
     }
 
     @Override
