@@ -34,6 +34,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -251,6 +254,6 @@ class HttpClientConnectorTest {
         final List<Proxy> proxies = httpClientConnector.getHttpClient().proxy().orElseThrow().select(URI.create("https://my.service.io"));
         assertEquals(1, proxies.size());
         final Proxy proxy = proxies.get(0);
-        assertEquals("my.gateway.io:3129", proxy.address().toString());
+        assertThat(proxy.address().toString(), anyOf(equalTo("my.gateway.io:3129"), equalTo("my.gateway.io/<unresolved>:3129")));
     }
 }
