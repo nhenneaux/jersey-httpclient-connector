@@ -74,12 +74,19 @@ public class HttpClientConnector implements Connector {
     @Override
     public ClientResponse apply(ClientRequest clientRequest) {
         final HttpRequest.Builder requestBuilder = toHttpClientRequestBuilder(clientRequest);
+        final Optional<Integer> optionalReadTimeoutInMilliseconds = Optional.ofNullable(clientRequest.getClient().getConfiguration().getProperty(ClientProperties.READ_TIMEOUT))
+                .map(Integer.class::cast);
+
         if (clientRequest.getEntity() == null) {
             requestBuilder.method(clientRequest.getMethod(), HttpRequest.BodyPublishers.noBody());
 
             final HttpResponse<InputStream> inputStreamHttpResponse = handleInterruption(() -> {
                 try {
-                    return httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream());
+                    optionalReadTimeoutInMilliseconds
+                            .map(Duration::ofMillis)
+                            .ifPresent(requestBuilder::timeout);
+                    return httpClient
+                            .send(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream());
                 } catch (IOException e) {
                     throw new ProcessingException("The HTTP exchange failed with I/O error, " + e.getMessage(), e);
                 }
@@ -87,8 +94,7 @@ public class HttpClientConnector implements Connector {
 
             return toJerseyResponse(clientRequest, inputStreamHttpResponse);
         }
-        final int readTimeoutInMilliseconds = Optional.ofNullable(clientRequest.getClient().getConfiguration().getProperty(ClientProperties.READ_TIMEOUT))
-                .map(Integer.class::cast).orElse(0);
+        final int readTimeoutInMilliseconds = optionalReadTimeoutInMilliseconds.orElse(0);
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = streamRequestBody(clientRequest, requestBuilder);
 
         final HttpResponse<InputStream> inputStreamHttpResponse = waitResponse(httpResponseCompletableFuture, readTimeoutInMilliseconds);
