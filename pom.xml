@@ -18,7 +18,7 @@
         <maven.compiler.target>11</maven.compiler.target>
 
         <skipRelease>true</skipRelease>
-        <jersey.version>2.31</jersey.version>
+        <jersey.version>2.32</jersey.version>
     </properties>
 
     <dependencies>
