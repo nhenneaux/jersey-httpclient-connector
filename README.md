@@ -4,12 +4,12 @@ A Jersey connector using `java.net.http.HttpClient` and supporting HTTP/1.1 and 
 # Usage
 To build a JAX-RS client, you can use the following. 
 ```java
-var Client = ClientBuilder.newClient(new ClientConfig().connectorProvider(HttpClientConnector::new))
+var client = ClientBuilder.newClient(new ClientConfig().connectorProvider(HttpClientConnector::new))
 ```
 If you want to customise the Java HTTP client you are using, you can use the following.
 ```java
 var httpClient = HttpClient.newHttpClient();
-var Client = ClientBuilder.newClient(
+var client = ClientBuilder.newClient(
                             new ClientConfig()
                               .connectorProvider(
                                  (jaxRsClient, config) ->  new HttpClientConnector(httpClient)))
