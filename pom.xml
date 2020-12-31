@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.connector.httpclient</groupId>
     <artifactId>jersey-httpclient-connector</artifactId>
-    <version>0.2.6-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 
     <name>Jersey Connector using java.net.http.HttpClient</name>
     <description>A Jersey connector using java.net.http.HttpClient and supporting HTTP/1.1 and HTTP/2.0 with the same client. The protocol is selected based on the server capabilities.</description>
@@ -18,7 +18,7 @@
         <maven.compiler.target>11</maven.compiler.target>
 
         <skipRelease>true</skipRelease>
-        <jersey.version>2.32</jersey.version>
+        <jersey.version>3.0.0</jersey.version>
     </properties>
 
     <dependencies>
@@ -37,7 +37,7 @@
 
         <dependency>
             <groupId>org.glassfish.jersey.inject</groupId>
-            <artifactId>jersey-hk2</artifactId>
+            <artifactId>jersey-cdi2-se</artifactId>
             <version>${jersey.version}</version>
             <scope>test</scope>
         </dependency>
