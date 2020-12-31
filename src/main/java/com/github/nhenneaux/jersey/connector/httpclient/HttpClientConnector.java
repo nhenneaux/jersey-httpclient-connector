@@ -167,18 +167,22 @@ public class HttpClientConnector implements Connector {
         final PipedInputStream pipedInputStream = new PipedInputStream();
         connectStream(pipedOutputStream, pipedInputStream);
         clientRequest.setStreamProvider(contentLength -> pipedOutputStream);
-
         final HttpRequest httpRequest = requestBuilder
                 .method(clientRequest.getMethod(), HttpRequest.BodyPublishers.ofInputStream(() -> pipedInputStream))
                 .build();
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
-        final CompletableFuture<Void> sendingFuture = CompletableFuture.runAsync(() -> {
+
+        final Runnable entityWriter = () -> {
             try {
                 clientRequest.writeEntity();
             } catch (IOException e) {
                 throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);
             }
-        });
+        };
+
+        final CompletableFuture<Void> sendingFuture = httpClient.executor()
+                .map(executor -> CompletableFuture.runAsync(entityWriter, executor))
+                .orElseGet(() -> CompletableFuture.runAsync(entityWriter));
 
         return sendingFuture.thenCombine(httpResponseCompletableFuture, (aVoid, inputStreamHttpResponse) -> inputStreamHttpResponse);
     }
