@@ -16,8 +16,8 @@ var client = ClientBuilder.newClient(
 ```
 
 Inspired from Stackoverflow question without answer [Support HTTP/1.1 and HTTP/2 with a JAX-RS client](https://stackoverflow.com/questions/42348041/support-http-1-1-and-http-2-with-a-jax-rs-client).
-
-
+<p>
+Version 0.2 is compatible with Jersey 2 while version 1.0 uses Jersey 3.
 
 [![Build Status](https://travis-ci.com/nhenneaux/jersey-httpclient-connector.svg?branch=master)](https://travis-ci.com/nhenneaux/jersey-httpclient-connector)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.nhenneaux.jersey.connector.httpclient/jersey-httpclient-connector/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.nhenneaux.jersey.connector.httpclient/jersey-httpclient-connector)
