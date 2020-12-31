@@ -10,8 +10,8 @@ import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 import javax.net.ssl.SSLContext;
-import javax.ws.rs.ProcessingException;
-import javax.ws.rs.client.Client;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
