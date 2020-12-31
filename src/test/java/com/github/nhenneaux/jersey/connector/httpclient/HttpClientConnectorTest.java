@@ -1,5 +1,7 @@
 package com.github.nhenneaux.jersey.connector.httpclient;
 
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.client.Client;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.ClientRequest;
@@ -10,8 +12,6 @@ import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 import javax.net.ssl.SSLContext;
-import jakarta.ws.rs.ProcessingException;
-import jakarta.ws.rs.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
@@ -47,6 +47,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class HttpClientConnectorTest {
@@ -80,6 +81,18 @@ class HttpClientConnectorTest {
                 .atMost(Duration.ofSeconds(5L))
                 .until(httpResponseCompletableFuture::isDone);
         assertSame(httpResponse, httpResponseCompletableFuture.get());
+    }
+
+    @Test
+    void close() {
+        // Given
+        final HttpClient httpClient = mock(HttpClient.class);
+        final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
+        // When
+        httpClientConnector.close();
+
+        // Then
+        verifyNoInteractions(httpClient);
     }
 
     @Test
