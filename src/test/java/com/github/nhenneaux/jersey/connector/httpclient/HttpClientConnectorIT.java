@@ -1,5 +1,15 @@
 package com.github.nhenneaux.jersey.connector.httpclient;
 
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.client.InvocationCallback;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.Form;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.media.multipart.MultiPart;
@@ -10,15 +20,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import jakarta.ws.rs.ProcessingException;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.InvocationCallback;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.Form;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpConnectTimeoutException;
@@ -151,6 +152,17 @@ class HttpClientConnectorIT {
     }
 
     @Test
+    void shouldWorkWithJaxRsClientForStringForTwoHundredRequests() {
+        final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).version(HttpClient.Version.HTTP_2).build())));
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
+        for (int i = 0; i < 200; i++) {
+            try (final Response response = target.request().get()) {
+                assertEquals(200, response.getStatus());
+            }
+        }
+    }
+
+    @Test
     void shouldWorkWithJaxRsClientWithPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
@@ -192,7 +204,8 @@ class HttpClientConnectorIT {
                 .path("200")
                 .queryParam("sleep", "5000");
 
-        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, () -> target.request().get());
+        Invocation.Builder request = target.request();
+        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, request::get);
         assertThat(processingException.getCause(), Matchers.anyOf(Matchers.instanceOf(HttpConnectTimeoutException.class), Matchers.instanceOf(HttpTimeoutException.class)));
 
     }
@@ -223,7 +236,8 @@ class HttpClientConnectorIT {
                 .path("200")
                 .queryParam("sleep", "5000");
 
-        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, () -> target.request().get());
+        Invocation.Builder request = target.request();
+        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, request::get);
         assertEquals(HttpTimeoutException.class, processingException.getCause().getClass());
 
     }

@@ -1,5 +1,9 @@
 package com.github.nhenneaux.jersey.connector.httpclient;
 
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.core.Configuration;
+import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.ClientRequest;
 import org.glassfish.jersey.client.ClientResponse;
@@ -7,10 +11,6 @@ import org.glassfish.jersey.client.spi.AsyncConnectorCallback;
 import org.glassfish.jersey.client.spi.Connector;
 import org.glassfish.jersey.message.internal.Statuses;
 
-import jakarta.ws.rs.ProcessingException;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.core.Configuration;
-import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
@@ -116,9 +116,10 @@ public class HttpClientConnector implements Connector {
 
     private ClientResponse toJerseyResponse(ClientRequest clientRequest, HttpResponse<InputStream> inputStreamHttpResponse) {
         final Response.StatusType responseStatus = Statuses.from(inputStreamHttpResponse.statusCode());
-        final ClientResponse jerseyResponse = new ClientResponse(responseStatus, clientRequest);
+        final InputStream entityStream = inputStreamHttpResponse.body();
+        final ClientResponse jerseyResponse = new ClosingStreamClientResponse(responseStatus, clientRequest, entityStream);
         inputStreamHttpResponse.headers().map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
-        jerseyResponse.setEntityStream(inputStreamHttpResponse.body());
+        jerseyResponse.setEntityStream(entityStream);
         return jerseyResponse;
     }
 
@@ -128,7 +129,6 @@ public class HttpClientConnector implements Connector {
 
     @Override
     public Future<?> apply(ClientRequest clientRequest, AsyncConnectorCallback asyncConnectorCallback) {
-
         final HttpRequest.Builder requestBuilder = toHttpClientRequestBuilder(clientRequest);
         if (clientRequest.getEntity() == null) {
             requestBuilder.method(clientRequest.getMethod(), HttpRequest.BodyPublishers.noBody());
@@ -141,7 +141,8 @@ public class HttpClientConnector implements Connector {
     }
 
     Future<ClientResponse> toJerseyResponseWithCallback(ClientRequest clientRequest, CompletableFuture<HttpResponse<InputStream>> inputStreamHttpResponseFuture, AsyncConnectorCallback asyncConnectorCallback) {
-        final CompletableFuture<ClientResponse> clientResponseCompletableFuture = inputStreamHttpResponseFuture.thenApply(inputStreamHttpResponse -> toJerseyResponse(clientRequest, inputStreamHttpResponse));
+        final CompletableFuture<ClientResponse> clientResponseCompletableFuture = inputStreamHttpResponseFuture
+                .thenApply(inputStreamHttpResponse -> toJerseyResponse(clientRequest, inputStreamHttpResponse));
         clientResponseCompletableFuture.whenComplete((response, cause) -> {
             if (cause == null) {
                 asyncConnectorCallback.response(response);
@@ -161,9 +162,7 @@ public class HttpClientConnector implements Connector {
     }
 
     CompletableFuture<HttpResponse<InputStream>> streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder) {
-        @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
         final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-        @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
         final PipedInputStream pipedInputStream = new PipedInputStream();
         connectStream(pipedOutputStream, pipedInputStream);
         clientRequest.setStreamProvider(contentLength -> pipedOutputStream);
@@ -173,7 +172,7 @@ public class HttpClientConnector implements Connector {
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
 
         final Runnable entityWriter = () -> {
-            try {
+            try (pipedInputStream; pipedOutputStream) {
                 clientRequest.writeEntity();
             } catch (IOException e) {
                 throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);
@@ -214,4 +213,22 @@ public class HttpClientConnector implements Connector {
         // Nothing to close
     }
 
+    private static class ClosingStreamClientResponse extends ClientResponse {
+        private final InputStream entityStream;
+
+        public ClosingStreamClientResponse(Response.StatusType responseStatus, ClientRequest clientRequest, InputStream entityStream) {
+            super(responseStatus, clientRequest);
+            this.entityStream = entityStream;
+        }
+
+        @Override
+        public void close() {
+            super.close();
+            try {
+                entityStream.close();
+            } catch (IOException e) {
+                throw new ProcessingException("Cannot close the response stream: " + e.getMessage(), e);
+            }
+        }
+    }
 }
