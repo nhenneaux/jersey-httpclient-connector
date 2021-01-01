@@ -47,6 +47,7 @@ jobs:
     - # stage: ...
       env:JDK=15 + Hotspot
       script: source install-jdk.sh --url 'https://api.adoptopenjdk.net/v2/binary/releases/openjdk15?openjdk_impl=hotspot&os=linux&arch=x64&release=latest&heap_size=normal&type=jdk'
+
     - stage: 🍺 adoptopenjdk.net - Eclipse OpenJ9
       env: JDK=11 + OpenJ9
       script: source install-jdk.sh --url 'https://api.adoptopenjdk.net/v2/binary/releases/openjdk11?openjdk_impl=openj9&os=linux&arch=x64&release=latest&heap_size=normal&type=jdk'
