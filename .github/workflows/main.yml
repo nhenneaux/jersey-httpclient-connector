@@ -19,7 +19,7 @@ jobs:
           - java: 17-ea
             os: macos-latest
             experimental: true
-          - java: 17-ea
+          - java: 17-ea, 17-ea
             os: windows-latest
             experimental: true
     name: Build with Java ${{ matrix.java }} on ${{ matrix.os }}
@@ -36,7 +36,7 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Build with Maven
-        run: mvn -B -C verify sonar:sonar -Dsonar.projectKey=nhenneaux_jersey-httpclient-connector -Dsonar.organization=nhenneaux -Dsonar.host.url=$SONAR_URL -Dsonar.login=$SONAR_TOKEN
+        run: mvn -B -C verify sonar:sonar -Dsonar.projectKey=nhenneaux_jersey-httpclient-connector -Dsonar.organization=nhenneaux -Dsonar.host.url="$SONAR_URL" -Dsonar.login="$SONAR_TOKEN"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
