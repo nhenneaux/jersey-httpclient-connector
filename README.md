@@ -19,7 +19,7 @@ Inspired from Stackoverflow question without answer [Support HTTP/1.1 and HTTP/2
 <p>
 Version 0.2 is compatible with Jersey 2 while version 1.0 uses Jersey 3.
 
-[![Build Status](https://travis-ci.com/nhenneaux/jersey-httpclient-connector.svg?branch=master)](https://travis-ci.com/nhenneaux/jersey-httpclient-connector)
+[![Build Status](https://github.com/nhenneaux/jaxrs-bundle/workflows/Java%20CI/badge.svg)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.nhenneaux.jersey.connector.httpclient/jersey-httpclient-connector/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.nhenneaux.jersey.connector.httpclient/jersey-httpclient-connector)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=nhenneaux_jersey-httpclient-connector&metric=alert_status)](https://sonarcloud.io/dashboard?id=nhenneaux_jersey-httpclient-connector)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=nhenneaux_jersey-httpclient-connector&metric=coverage)](https://sonarcloud.io/dashboard?id=nhenneaux_jersey-httpclient-connector)
