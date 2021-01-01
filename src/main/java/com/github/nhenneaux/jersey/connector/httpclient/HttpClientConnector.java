@@ -116,10 +116,10 @@ public class HttpClientConnector implements Connector {
 
     private ClientResponse toJerseyResponse(ClientRequest clientRequest, HttpResponse<InputStream> inputStreamHttpResponse) {
         final Response.StatusType responseStatus = Statuses.from(inputStreamHttpResponse.statusCode());
+        final ClientResponse jerseyResponse = new ClientResponse(responseStatus, clientRequest);
         final InputStream entityStream = inputStreamHttpResponse.body();
-        final ClientResponse jerseyResponse = new ClosingStreamClientResponse(responseStatus, clientRequest, entityStream);
-        inputStreamHttpResponse.headers().map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
         jerseyResponse.setEntityStream(entityStream);
+        inputStreamHttpResponse.headers().map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
         return jerseyResponse;
     }
 
@@ -213,22 +213,4 @@ public class HttpClientConnector implements Connector {
         // Nothing to close
     }
 
-    private static class ClosingStreamClientResponse extends ClientResponse {
-        private final InputStream entityStream;
-
-        public ClosingStreamClientResponse(Response.StatusType responseStatus, ClientRequest clientRequest, InputStream entityStream) {
-            super(responseStatus, clientRequest);
-            this.entityStream = entityStream;
-        }
-
-        @Override
-        public void close() {
-            super.close();
-            try {
-                entityStream.close();
-            } catch (IOException e) {
-                throw new ProcessingException("Cannot close the response stream: " + e.getMessage(), e);
-            }
-        }
-    }
 }
