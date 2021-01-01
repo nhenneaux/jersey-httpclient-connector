@@ -5,6 +5,9 @@ before_script:
 
 jobs:
   include:
+    - stage: openjdk-ea
+      env: JDK=11
+      script: source install-jdk.sh -F 11
     - stage: JDK=11
       env: JDK=11
       script: source install-jdk.sh -F 11
@@ -28,7 +31,7 @@ jobs:
 
 matrix:
   allow_failures:
-    - jdk: openjdk-ea
+    - openjdk-ea
 
 addons:
   sonarcloud:
