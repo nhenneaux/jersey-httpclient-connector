@@ -19,7 +19,7 @@ jobs:
           - java: 17-ea
             os: macos-latest
             experimental: true
-          - java: 17-ea, 17-ea
+          - java: 17-ea
             os: windows-latest
             experimental: true
     name: Build with Java ${{ matrix.java }} on ${{ matrix.os }}
