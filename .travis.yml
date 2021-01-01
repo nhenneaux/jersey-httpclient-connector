@@ -6,6 +6,13 @@ before_script:
 jobs:
   include:
 
+    - stage: 🍺 adoptopenjdk.net - HotSpot
+      env: JDK=11 + Hotspot
+      script: source install-jdk.sh --url 'https://api.adoptopenjdk.net/v2/binary/releases/openjdk11?openjdk_impl=hotspot&os=linux&arch=x64&release=latest&heap_size=normal&type=jdk'
+    - # stage: ...
+      env: JDK=15 + Hotspot
+      script: source install-jdk.sh --url 'https://api.adoptopenjdk.net/v2/binary/releases/openjdk15?openjdk_impl=hotspot&os=linux&arch=x64&release=latest&heap_size=normal&type=jdk'
+
     - stage: ☕ jdk.java.net - Java Development Kit builds, from Oracle
       env: JDK=ea
       script: source ./install-jdk.sh --verbose --feature ea
@@ -16,6 +23,13 @@ jobs:
     - # stage: ...
       env: JDK=15
       script: source ./install-jdk.sh --feature 15
+    - # stage: ...
+      env: JDK=11
+      script: source ./install-jdk.sh --feature 11
+
+    - stage: 🍺 adoptopenjdk.net - Eclipse OpenJ9
+      env: JDK=11 + OpenJ9
+      script: source install-jdk.sh --url 'https://api.adoptopenjdk.net/v2/binary/releases/openjdk11?openjdk_impl=openj9&os=linux&arch=x64&release=latest&heap_size=normal&type=jdk'
 
     - stage: 🚫 jdk.java.net - Archived OpenJDK General-Availability Releases
       env: JDK=14 🚫
