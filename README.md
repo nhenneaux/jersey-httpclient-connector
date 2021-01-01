@@ -1,4 +1,4 @@
-# Jersey Connector using `java.net.http.HttpClient`
+# Jersey Connector with `java.net.http.HttpClient`
 A Jersey connector using `java.net.http.HttpClient` and supporting HTTP/1.1 and HTTP/2.0 with the same client. The protocol is selected based on the server capabilities.
 
 # Usage
