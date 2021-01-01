@@ -98,7 +98,7 @@ class JettyServerTest {
     @Timeout(60)
     void testConcurrentGetHttp2JavaHttpClient() throws Exception {
         testConcurrent(new ClientConfig()
-                .connectorProvider((jaxRsClient, configuration) -> getHttpClientConnector(jaxRsClient, HttpClient.Version.HTTP_2)), HttpMethod.GET);
+                .connectorProvider((jaxRsClient, configuration) -> getHttpClientConnector(jaxRsClient, HttpClient.Version.HTTP_2)), HttpMethod.GET, "/pingWithSleep");
     }
 
     @Test
@@ -114,10 +114,10 @@ class JettyServerTest {
 
 
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
-        testConcurrent(clientConfig, "HEAD");
+        testConcurrent(clientConfig, "HEAD", PING);
     }
 
-    private void testConcurrent(ClientConfig clientConfig, String method) throws Exception {
+    private void testConcurrent(ClientConfig clientConfig, String method, String path) throws Exception {
         int port = PORT;
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         final KeyStore truststore = trustStore();
@@ -132,14 +132,14 @@ class JettyServerTest {
                     .trustStore(truststore)
                     .withConfig(clientConfig)
                     .build();
-            client.target("https://localhost:" + port).path(PING).request().method(method).close();
+            client.target("https://localhost:" + port).path(path).request().method(method).close();
 
             AtomicInteger counter = new AtomicInteger();
             final Runnable runnable = () -> {
                 long start = System.nanoTime();
                 for (int i = 0; i < iterations; i++) {
                     try (Response response = client
-                            .target("https://localhost:" + port).path("/pingWithSleep").request().method(method)) {
+                            .target("https://localhost:" + port).path(path).request().method(method)) {
                         response.getStatus();
                         counter.incrementAndGet();
                         int reportEveryRequests = 1_000;
