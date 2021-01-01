@@ -3,11 +3,6 @@ language: java
 before_script:
   - wget https://github.com/sormuras/bach/raw/master/install-jdk.sh
 
-language: java
-
-before_script:
-  - wget https://github.com/sormuras/bach/raw/master/install-jdk.sh
-
 jobs:
   include:
 
