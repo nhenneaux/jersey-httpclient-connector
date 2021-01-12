@@ -152,11 +152,12 @@ class HttpClientConnectorIT {
     }
 
     @Test
-    void shouldWorkWithJaxRsClientForStringForTwoHundredRequests() {
+    void shouldWorkWithJaxRsClientForStringForTwoHundredRequests() throws IOException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).version(HttpClient.Version.HTTP_2).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         for (int i = 0; i < 200; i++) {
             try (final Response response = target.request().get()) {
+                response.readEntity(String.class);
                 assertEquals(200, response.getStatus());
             }
         }
@@ -263,7 +264,10 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithJsonPostAsync() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
-        final Future<Response> responseFuture = target.request().async().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE));
+        final Form form = new Form();
+        form.param("foo1", "bar1");
+        form.param("foo2", "bar2");
+        final Future<Response> responseFuture = target.request().async().post(Entity.form(form));
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
@@ -273,7 +277,10 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithJsonPostAsyncWithCallback() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
-        final Future<Response> responseFuture = target.request().async().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE), CALLBACK);
+        final Form form = new Form();
+        form.param("foo1", "bar1");
+        form.param("foo2", "bar2");
+        final Future<Response> responseFuture = target.request().async().post(Entity.form(form), CALLBACK);
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
@@ -285,7 +292,10 @@ class HttpClientConnectorIT {
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
 
         final AtomicReference<Response> objectAtomicReference = new AtomicReference<>();
-        final Future<Response> responseFuture = target.request().async().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE), new InvocationCallback<>() {
+        final Form form = new Form();
+        form.param("foo1", "bar1");
+        form.param("foo2", "bar2");
+        final Future<Response> responseFuture = target.request().async().post(Entity.form(form), new InvocationCallback<>() {
             @Override
             public void completed(Response response) {
                 objectAtomicReference.set(response);
