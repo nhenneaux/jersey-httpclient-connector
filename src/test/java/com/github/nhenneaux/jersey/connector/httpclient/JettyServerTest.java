@@ -11,6 +11,8 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.security.KeyStore;
 import java.util.Set;
@@ -140,6 +142,7 @@ class JettyServerTest {
                 for (int i = 0; i < iterations; i++) {
                     try (Response response = client
                             .target("https://localhost:" + port).path(path).request().method(method)) {
+                        response.readEntity(InputStream.class).readAllBytes();
                         response.getStatus();
                         counter.incrementAndGet();
                         int reportEveryRequests = 1_000;
@@ -147,6 +150,8 @@ class JettyServerTest {
                             System.out.println(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) * 1.0 / reportEveryRequests);
                             start = System.nanoTime();
                         }
+                    } catch (IOException e) {
+                        throw new IllegalStateException(e);
                     }
                 }
             };
