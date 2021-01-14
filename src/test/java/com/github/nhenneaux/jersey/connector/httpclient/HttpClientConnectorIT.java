@@ -152,7 +152,7 @@ class HttpClientConnectorIT {
     }
 
     @Test
-    void shouldWorkWithJaxRsClientForStringForTwoHundredRequests() throws IOException {
+    void shouldWorkWithJaxRsClientForStringForTwoHundredRequests() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).version(HttpClient.Version.HTTP_2).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         for (int i = 0; i < 200; i++) {
@@ -179,7 +179,7 @@ class HttpClientConnectorIT {
     @Test
     void shouldWorkWithJaxRsClientWithJsonPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
-        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         final Response response = target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE));
 
         assertEquals(200, response.getStatus());
@@ -321,7 +321,7 @@ class HttpClientConnectorIT {
         final ClientConfig configuration = new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build()));
         configuration.register(MultiPartFeature.class);
         final Client client = ClientBuilder.newClient(configuration);
-        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
 
         final Path file = Files.createTempFile("shouldWorkWithJaxRsClientWithStreamPost", ".json");
         Files.write(file, JSON.getBytes(StandardCharsets.UTF_8));
@@ -336,7 +336,7 @@ class HttpClientConnectorIT {
 
         Response response = target.request(MediaType.APPLICATION_JSON_TYPE)
                 .post(Entity.entity(multiPart, multiPart.getMediaType()));
-        assertEquals(500, response.getStatus());
+        assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
     }
 
