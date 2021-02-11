@@ -117,8 +117,9 @@ public class HttpClientConnector implements Connector {
     private ClientResponse toJerseyResponse(ClientRequest clientRequest, HttpResponse<InputStream> inputStreamHttpResponse) {
         final Response.StatusType responseStatus = Statuses.from(inputStreamHttpResponse.statusCode());
         final ClientResponse jerseyResponse = new ClientResponse(responseStatus, clientRequest);
+        final InputStream entityStream = inputStreamHttpResponse.body();
+        jerseyResponse.setEntityStream(entityStream);
         inputStreamHttpResponse.headers().map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
-        jerseyResponse.setEntityStream(inputStreamHttpResponse.body());
         return jerseyResponse;
     }
 
@@ -161,9 +162,7 @@ public class HttpClientConnector implements Connector {
     }
 
     CompletableFuture<HttpResponse<InputStream>> streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder) {
-        @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
         final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-        @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
         final PipedInputStream pipedInputStream = new PipedInputStream();
         connectStream(pipedOutputStream, pipedInputStream);
         clientRequest.setStreamProvider(contentLength -> pipedOutputStream);
@@ -172,13 +171,18 @@ public class HttpClientConnector implements Connector {
                 .method(clientRequest.getMethod(), HttpRequest.BodyPublishers.ofInputStream(() -> pipedInputStream))
                 .build();
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
-        final CompletableFuture<Void> sendingFuture = CompletableFuture.runAsync(() -> {
-            try {
+
+        final Runnable entityWriter = () -> {
+            try (pipedInputStream; pipedOutputStream) {
                 clientRequest.writeEntity();
             } catch (IOException e) {
                 throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);
             }
-        });
+        };
+
+        final CompletableFuture<Void> sendingFuture = httpClient.executor()
+                .map(executor -> CompletableFuture.runAsync(entityWriter, executor))
+                .orElseGet(() -> CompletableFuture.runAsync(entityWriter));
 
         return sendingFuture.thenCombine(httpResponseCompletableFuture, (aVoid, inputStreamHttpResponse) -> inputStreamHttpResponse);
     }
