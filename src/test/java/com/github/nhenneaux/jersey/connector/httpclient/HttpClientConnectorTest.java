@@ -162,9 +162,7 @@ class HttpClientConnectorTest {
             throw interruptedException;
         }));
         AtomicReference<Throwable> expectedInterruptedException = new AtomicReference<>();
-        thread.setUncaughtExceptionHandler((t, e) -> {
-            expectedInterruptedException.set(e);
-        });
+        thread.setUncaughtExceptionHandler((t, e) -> expectedInterruptedException.set(e));
         thread.start();
 
         await()
@@ -214,7 +212,7 @@ class HttpClientConnectorTest {
     }
 
     @Test
-    void shouldNotUseTimeoutGetWhenZeroReadTimeout() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotUseTimeoutGetWhenZeroReadTimeout() throws InterruptedException, ExecutionException {
         // Given
         final HttpClient httpClient = mock(HttpClient.class);
         @SuppressWarnings("unchecked") final CompletableFuture<HttpResponse<InputStream>> responseFuture = mock(CompletableFuture.class);
