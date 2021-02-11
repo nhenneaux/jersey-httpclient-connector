@@ -47,6 +47,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class HttpClientConnectorTest {
@@ -80,6 +81,18 @@ class HttpClientConnectorTest {
                 .atMost(Duration.ofSeconds(5L))
                 .until(httpResponseCompletableFuture::isDone);
         assertSame(httpResponse, httpResponseCompletableFuture.get());
+    }
+
+    @Test
+    void close() {
+        // Given
+        final HttpClient httpClient = mock(HttpClient.class);
+        final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
+        // When
+        httpClientConnector.close();
+
+        // Then
+        verifyNoInteractions(httpClient);
     }
 
     @Test
@@ -149,9 +162,7 @@ class HttpClientConnectorTest {
             throw interruptedException;
         }));
         AtomicReference<Throwable> expectedInterruptedException = new AtomicReference<>();
-        thread.setUncaughtExceptionHandler((t, e) -> {
-            expectedInterruptedException.set(e);
-        });
+        thread.setUncaughtExceptionHandler((t, e) -> expectedInterruptedException.set(e));
         thread.start();
 
         await()
@@ -201,7 +212,7 @@ class HttpClientConnectorTest {
     }
 
     @Test
-    void shouldNotUseTimeoutGetWhenZeroReadTimeout() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldNotUseTimeoutGetWhenZeroReadTimeout() throws InterruptedException, ExecutionException {
         // Given
         final HttpClient httpClient = mock(HttpClient.class);
         @SuppressWarnings("unchecked") final CompletableFuture<HttpResponse<InputStream>> responseFuture = mock(CompletableFuture.class);

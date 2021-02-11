@@ -14,6 +14,7 @@ import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.InvocationCallback;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Form;
@@ -151,6 +152,18 @@ class HttpClientConnectorIT {
     }
 
     @Test
+    void shouldWorkWithJaxRsClientForStringForTwoHundredRequests() {
+        final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).version(HttpClient.Version.HTTP_2).build())));
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
+        for (int i = 0; i < 200; i++) {
+            try (final Response response = target.request().get()) {
+                response.readEntity(String.class);
+                assertEquals(200, response.getStatus());
+            }
+        }
+    }
+
+    @Test
     void shouldWorkWithJaxRsClientWithPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
@@ -166,7 +179,7 @@ class HttpClientConnectorIT {
     @Test
     void shouldWorkWithJaxRsClientWithJsonPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
-        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         final Response response = target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE));
 
         assertEquals(200, response.getStatus());
@@ -192,7 +205,8 @@ class HttpClientConnectorIT {
                 .path("200")
                 .queryParam("sleep", "5000");
 
-        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, () -> target.request().get());
+        Invocation.Builder request = target.request();
+        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, request::get);
         assertThat(processingException.getCause(), Matchers.anyOf(Matchers.instanceOf(HttpConnectTimeoutException.class), Matchers.instanceOf(HttpTimeoutException.class)));
 
     }
@@ -223,7 +237,8 @@ class HttpClientConnectorIT {
                 .path("200")
                 .queryParam("sleep", "5000");
 
-        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, () -> target.request().get());
+        Invocation.Builder request = target.request();
+        final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, request::get);
         assertEquals(HttpTimeoutException.class, processingException.getCause().getClass());
 
     }
@@ -249,7 +264,10 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithJsonPostAsync() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
-        final Future<Response> responseFuture = target.request().async().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE));
+        final Form form = new Form();
+        form.param("foo1", "bar1");
+        form.param("foo2", "bar2");
+        final Future<Response> responseFuture = target.request().async().post(Entity.form(form));
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
@@ -259,7 +277,10 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithJsonPostAsyncWithCallback() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
-        final Future<Response> responseFuture = target.request().async().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE), CALLBACK);
+        final Form form = new Form();
+        form.param("foo1", "bar1");
+        form.param("foo2", "bar2");
+        final Future<Response> responseFuture = target.request().async().post(Entity.form(form), CALLBACK);
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
@@ -271,7 +292,10 @@ class HttpClientConnectorIT {
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
 
         final AtomicReference<Response> objectAtomicReference = new AtomicReference<>();
-        final Future<Response> responseFuture = target.request().async().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE), new InvocationCallback<>() {
+        final Form form = new Form();
+        form.param("foo1", "bar1");
+        form.param("foo2", "bar2");
+        final Future<Response> responseFuture = target.request().async().post(Entity.form(form), new InvocationCallback<>() {
             @Override
             public void completed(Response response) {
                 objectAtomicReference.set(response);
@@ -297,7 +321,7 @@ class HttpClientConnectorIT {
         final ClientConfig configuration = new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build()));
         configuration.register(MultiPartFeature.class);
         final Client client = ClientBuilder.newClient(configuration);
-        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
 
         final Path file = Files.createTempFile("shouldWorkWithJaxRsClientWithStreamPost", ".json");
         Files.write(file, JSON.getBytes(StandardCharsets.UTF_8));
@@ -312,7 +336,7 @@ class HttpClientConnectorIT {
 
         Response response = target.request(MediaType.APPLICATION_JSON_TYPE)
                 .post(Entity.entity(multiPart, multiPart.getMediaType()));
-        assertEquals(500, response.getStatus());
+        assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
     }
 
