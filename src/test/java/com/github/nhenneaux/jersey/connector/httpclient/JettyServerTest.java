@@ -3,6 +3,7 @@ package com.github.nhenneaux.jersey.connector.httpclient;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
@@ -16,6 +17,7 @@ import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.security.KeyStore;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -74,6 +76,22 @@ class JettyServerTest {
                 DummyRestService.class)) {
             final Response ping = getClient(port).path(PING).request().head();
             assertEquals(204, ping.getStatus());
+        }
+    }
+
+    @Test
+    @Timeout(20)
+    void testPost() throws Exception {
+        int port = PORT;
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
+        try (AutoCloseable ignored = jerseyServer(
+                port,
+                tlsSecurityConfiguration,
+                DummyRestService.class)) {
+            String data = UUID.randomUUID().toString();
+            final Response response = getClient(port).path("post").request().post(Entity.json(new DummyRestService.Data(data)));
+            assertEquals(200, response.getStatus());
+            assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
         }
     }
 
