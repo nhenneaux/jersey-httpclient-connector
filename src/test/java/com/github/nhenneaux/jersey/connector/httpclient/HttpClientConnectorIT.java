@@ -7,7 +7,6 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.client.InvocationCallback;
 import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.Form;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
@@ -167,10 +166,7 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
-        final Form form = new Form();
-        form.param("foo1", "bar1");
-        form.param("foo2", "bar2");
-        final Response response = target.request().post(Entity.form(form));
+        final Response response = target.request().post(Entity.json(JSON));
 
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
@@ -192,7 +188,8 @@ class HttpClientConnectorIT {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         client.property(ClientProperties.READ_TIMEOUT, 10);
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
-        final Exception expectedException = Assertions.assertThrows(Exception.class, () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
+        final Exception expectedException = Assertions.assertThrows(Exception.class,
+                () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
         assertEquals(TimeoutException.class, expectedException.getCause().getClass());
     }
 
@@ -264,10 +261,7 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithJsonPostAsync() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
-        final Form form = new Form();
-        form.param("foo1", "bar1");
-        form.param("foo2", "bar2");
-        final Future<Response> responseFuture = target.request().async().post(Entity.form(form));
+        final Future<Response> responseFuture = target.request().async().post(Entity.json(JSON));
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
@@ -277,10 +271,7 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithJsonPostAsyncWithCallback() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
-        final Form form = new Form();
-        form.param("foo1", "bar1");
-        form.param("foo2", "bar2");
-        final Future<Response> responseFuture = target.request().async().post(Entity.form(form), CALLBACK);
+        final Future<Response> responseFuture = target.request().async().post(Entity.json(JSON), CALLBACK);
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
@@ -292,10 +283,7 @@ class HttpClientConnectorIT {
         final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
 
         final AtomicReference<Response> objectAtomicReference = new AtomicReference<>();
-        final Form form = new Form();
-        form.param("foo1", "bar1");
-        form.param("foo2", "bar2");
-        final Future<Response> responseFuture = target.request().async().post(Entity.form(form), new InvocationCallback<>() {
+        final Future<Response> responseFuture = target.request().async().post(Entity.json(JSON), new InvocationCallback<>() {
             @Override
             public void completed(Response response) {
                 objectAtomicReference.set(response);
@@ -303,7 +291,7 @@ class HttpClientConnectorIT {
 
             @Override
             public void failed(Throwable throwable) {
-// ignored
+                // ignored
             }
         });
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
