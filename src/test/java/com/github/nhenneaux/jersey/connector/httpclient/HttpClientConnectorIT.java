@@ -82,7 +82,6 @@ class HttpClientConnectorIT {
             "\n";
 
 
-    private static final String HTTPS_POSTMAN_ECHO_COM_POST = "https://postman-echo.com/post";
     private static final String HTTPS_DEVOXX_BE = "https://devoxx.be";
 
     @Test
@@ -165,7 +164,7 @@ class HttpClientConnectorIT {
     @Test
     void shouldWorkWithJaxRsClientWithPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
-        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         final Response response = target.request().post(Entity.json(JSON));
 
         assertEquals(200, response.getStatus());
@@ -187,7 +186,7 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithJsonPostAndShortTimeout() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         client.property(ClientProperties.READ_TIMEOUT, 10);
-        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         final Exception expectedException = Assertions.assertThrows(Exception.class,
                 () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
         assertEquals(TimeoutException.class, expectedException.getCause().getClass());
@@ -260,7 +259,7 @@ class HttpClientConnectorIT {
     @Test
     void shouldWorkWithJaxRsClientWithJsonPostAsync() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
-        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         final Future<Response> responseFuture = target.request().async().post(Entity.json(JSON));
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
@@ -270,7 +269,7 @@ class HttpClientConnectorIT {
     @Test
     void shouldWorkWithJaxRsClientWithJsonPostAsyncWithCallback() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
-        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         final Future<Response> responseFuture = target.request().async().post(Entity.json(JSON), CALLBACK);
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
@@ -280,7 +279,7 @@ class HttpClientConnectorIT {
     @Test
     void shouldWorkWithJaxRsClientWithJsonPostAsyncWithCallbackCheck() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
-        final WebTarget target = client.target(HTTPS_POSTMAN_ECHO_COM_POST);
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
 
         final AtomicReference<Response> objectAtomicReference = new AtomicReference<>();
         final Future<Response> responseFuture = target.request().async().post(Entity.json(JSON), new InvocationCallback<>() {
