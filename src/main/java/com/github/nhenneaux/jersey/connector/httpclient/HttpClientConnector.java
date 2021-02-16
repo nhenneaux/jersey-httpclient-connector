@@ -162,7 +162,9 @@ public class HttpClientConnector implements Connector {
     }
 
     CompletableFuture<HttpResponse<InputStream>> streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder) {
+        @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
         final PipedOutputStream pipedOutputStream = new PipedOutputStream();
+        @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
         final PipedInputStream pipedInputStream = new PipedInputStream();
         connectStream(pipedOutputStream, pipedInputStream);
         clientRequest.setStreamProvider(contentLength -> pipedOutputStream);
@@ -173,7 +175,7 @@ public class HttpClientConnector implements Connector {
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
 
         final Runnable entityWriter = () -> {
-            try (pipedInputStream; pipedOutputStream) {
+            try {
                 clientRequest.writeEntity();
             } catch (IOException e) {
                 throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);

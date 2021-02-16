@@ -1,6 +1,5 @@
-package com.github.nhenneaux.jersey.connector.httpclient.jetty;
+package com.github.nhenneaux.jersey.connector.httpclient;
 
-import com.github.nhenneaux.jersey.connector.httpclient.HttpClientConnector;
 import org.glassfish.jersey.client.ClientConfig;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -10,6 +9,7 @@ import org.junit.jupiter.api.Timeout;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -17,12 +17,13 @@ import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.security.KeyStore;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.github.nhenneaux.jersey.connector.httpclient.jetty.JettyServer.TlsSecurityConfiguration.getKeyStore;
+import static com.github.nhenneaux.jersey.connector.httpclient.JettyServer.TlsSecurityConfiguration.getKeyStore;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("squid:S00112")
@@ -75,6 +76,22 @@ class JettyServerTest {
                 DummyRestService.class)) {
             final Response ping = getClient(port).path(PING).request().head();
             assertEquals(204, ping.getStatus());
+        }
+    }
+
+    @Test
+    @Timeout(20)
+    void testPost() throws Exception {
+        int port = PORT;
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
+        try (AutoCloseable ignored = jerseyServer(
+                port,
+                tlsSecurityConfiguration,
+                DummyRestService.class)) {
+            String data = UUID.randomUUID().toString();
+            final Response response = getClient(port).path("post").request().post(Entity.json(new DummyRestService.Data(data)));
+            assertEquals(200, response.getStatus());
+            assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
         }
     }
 
