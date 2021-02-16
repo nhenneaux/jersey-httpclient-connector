@@ -71,6 +71,14 @@ public class HttpClientConnector implements Connector {
         }
     }
 
+    static void connectStream(PipedOutputStream pipedOutputStream, PipedInputStream pipedInputStream) {
+        try {
+            pipedInputStream.connect(pipedOutputStream);
+        } catch (IOException e) {
+            throw new ProcessingException("The input stream cannot be connected to the output stream, " + e.getMessage(), e);
+        }
+    }
+
     @Override
     public ClientResponse apply(ClientRequest clientRequest) {
         final HttpRequest.Builder requestBuilder = toHttpClientRequestBuilder(clientRequest);
@@ -102,17 +110,17 @@ public class HttpClientConnector implements Connector {
         return toJerseyResponse(clientRequest, inputStreamHttpResponse);
     }
 
-     HttpResponse<InputStream> waitResponse(CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture, int readTimeoutInMilliseconds) {
-         return handleInterruption(() -> {
-             try {
-                 return readTimeoutInMilliseconds == 0 ? httpResponseCompletableFuture.get() : httpResponseCompletableFuture.get(readTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
-             } catch (ExecutionException e) {
-                 throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
-             } catch (TimeoutException e) {
-                 throw new ProcessingException("No response received within " + readTimeoutInMilliseconds + "ms.", e);
-             }
-         });
-     }
+    HttpResponse<InputStream> waitResponse(CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture, int readTimeoutInMilliseconds) {
+        return handleInterruption(() -> {
+            try {
+                return readTimeoutInMilliseconds == 0 ? httpResponseCompletableFuture.get() : httpResponseCompletableFuture.get(readTimeoutInMilliseconds, TimeUnit.MILLISECONDS);
+            } catch (ExecutionException e) {
+                throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
+            } catch (TimeoutException e) {
+                throw new ProcessingException("No response received within " + readTimeoutInMilliseconds + "ms.", e);
+            }
+        });
+    }
 
     private ClientResponse toJerseyResponse(ClientRequest clientRequest, HttpResponse<InputStream> inputStreamHttpResponse) {
         final Response.StatusType responseStatus = Statuses.from(inputStreamHttpResponse.statusCode());
@@ -121,10 +129,6 @@ public class HttpClientConnector implements Connector {
         jerseyResponse.setEntityStream(entityStream);
         inputStreamHttpResponse.headers().map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
         return jerseyResponse;
-    }
-
-    interface Interruptable {
-        HttpResponse<InputStream> execute() throws InterruptedException;
     }
 
     @Override
@@ -151,14 +155,6 @@ public class HttpClientConnector implements Connector {
             }
         });
         return clientResponseCompletableFuture;
-    }
-
-    static void connectStream(PipedOutputStream pipedOutputStream, PipedInputStream pipedInputStream) {
-        try {
-            pipedInputStream.connect(pipedOutputStream);
-        } catch (IOException e) {
-            throw new ProcessingException("The input stream cannot be connected to the output stream, " + e.getMessage(), e);
-        }
     }
 
     CompletableFuture<HttpResponse<InputStream>> streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder) {
@@ -214,6 +210,10 @@ public class HttpClientConnector implements Connector {
     @Override
     public void close() {
         // Nothing to close
+    }
+
+    interface Interruptable {
+        HttpResponse<InputStream> execute() throws InterruptedException;
     }
 
 }
