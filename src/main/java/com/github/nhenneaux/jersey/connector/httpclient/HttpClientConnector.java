@@ -33,6 +33,22 @@ import java.util.concurrent.TimeoutException;
 import static org.glassfish.jersey.client.ClientProperties.CONNECT_TIMEOUT;
 import static org.glassfish.jersey.client.ClientProperties.PROXY_URI;
 
+/**
+ * Jersey connector for java.net.http.HttpClient.
+ * <p>
+ * To build a JAX-RS client, you can use the following.
+ * <pre><code>
+ * var client = ClientBuilder.newClient(new ClientConfig().connectorProvider(HttpClientConnector::new))
+ * </code></pre>
+ * If you want to customise the Java HTTP client you are using, you can use the following.
+ * <pre><code>
+ * var httpClient = HttpClient.newHttpClient();
+ * var client = ClientBuilder.newClient(
+ *                             new ClientConfig()
+ *                               .connectorProvider(
+ *                                  (jaxRsClient, config) ->  new HttpClientConnector(httpClient)))
+ * </code></pre>
+ */
 public class HttpClientConnector implements Connector {
 
     private final HttpClient httpClient;
