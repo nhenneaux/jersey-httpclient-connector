@@ -26,6 +26,7 @@
 
         <jetty.version>9.4.36.v20210114</jetty.version>
         <weld-se-core.version>3.1.6.Final</weld-se-core.version>
+        <jackson.version>2.12.1</jackson.version>
     </properties>
 
     <dependencies>
@@ -89,6 +90,13 @@
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-servlet-core</artifactId>
+            <version>${jersey.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-json-jackson</artifactId>
             <version>${jersey.version}</version>
             <scope>test</scope>
         </dependency>

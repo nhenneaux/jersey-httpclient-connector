@@ -1,4 +1,4 @@
-package com.github.nhenneaux.jersey.connector.httpclient.jetty;
+package com.github.nhenneaux.jersey.connector.httpclient;
 
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http.HttpVersion;
