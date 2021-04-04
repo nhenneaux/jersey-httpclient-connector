@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.connector.httpclient</groupId>
     <artifactId>jersey-httpclient-connector</artifactId>
-    <version>1.0.7</version>
+    <version>1.0.8</version>
 
     <name>Jersey Connector using java.net.http.HttpClient</name>
     <description>A Jersey connector using java.net.http.HttpClient and supporting HTTP/1.1 and HTTP/2.0 with the same client. The protocol is selected based on the server capabilities.</description>
@@ -23,9 +23,9 @@
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
 
         <jersey.version>3.0.1</jersey.version>
-        <jetty.version>11.0.1</jetty.version>
+        <jetty.version>11.0.2</jetty.version>
         <weld-se-core.version>4.0.0.Final</weld-se-core.version>
-        <log4j.version>2.14.0</log4j.version>
+        <log4j.version>2.14.1</log4j.version>
     </properties>
 
     <dependencies>

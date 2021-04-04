@@ -53,15 +53,15 @@ class JettyServerTest {
     }
 
     private static KeyStore trustStore() {
-        return getKeyStore("pkcs12-truststore-password".toCharArray(), "truststore.p12");
+        return getKeyStore("TEST==ONLY==truststore-password".toCharArray(), "truststore.p12");
     }
 
     static JettyServer.TlsSecurityConfiguration tlsConfig() {
         return new JettyServer.TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
-                "server",
-                "TEST==ONLY==jks-keystore-password",
-                "TLSv1.2"
+                getKeyStore("TEST==ONLY==key-store-password".toCharArray(), "keystore.p12"),
+                "localhost with alternate ip",
+                "TEST==ONLY==key-store-password",
+                "TLSv1.3"
         );
     }
 
