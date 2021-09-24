@@ -7,7 +7,6 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.client.InvocationCallback;
 import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
@@ -176,7 +175,7 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithMethodPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
-        final Response response = target.request().header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+        final Response response = target.request()
                 .method("POST", Entity.json(JSON));
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));

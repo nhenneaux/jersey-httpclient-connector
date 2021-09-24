@@ -5,8 +5,6 @@ import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.HttpHeaders;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
 import org.jboss.weld.environment.se.Weld;
@@ -108,7 +106,6 @@ class JettyServerTest {
                 DummyRestService.class)) {
             String data = UUID.randomUUID().toString();
             final Response response = getClient(port).path("post").request()
-                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
                     .method("POST", Entity.json(new DummyRestService.Data(data)));
             assertEquals(200, response.getStatus());
             assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
