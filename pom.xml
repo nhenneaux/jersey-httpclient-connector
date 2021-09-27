@@ -212,6 +212,7 @@
                             <goal>sign</goal>
                         </goals>
                         <configuration>
+                            <keyname>46E20128E3A624C11FFF6B95D1BA17265A0E8512</keyname>
                             <!-- Configuration to prevent the 'Signing Prompt' or the  -->
                             <!-- 'gpg: signing failed: No such file or directory' error -->
                             <!-- See https://myshittycode.com/2017/08/07/maven-gpg-plugin-prevent-signing-prompt-or-gpg-signing-failed-no-such-file-or-directory-error/ -->
