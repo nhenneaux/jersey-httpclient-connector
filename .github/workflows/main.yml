@@ -10,16 +10,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        java: [ 11, 15, 16-ea ]
+        java: [ 11, 17 ]
         experimental: [ false ]
         include:
-          - java: 17-ea
+          - java: 18-ea
             os: ubuntu-latest
             experimental: true
-          - java: 17-ea
+          - java: 18-ea
             os: macos-latest
             experimental: true
-          - java: 17-ea
+          - java: 18-ea
             os: windows-latest
             experimental: true
     name: Build with Java ${{ matrix.java }} on ${{ matrix.os }}
@@ -44,7 +44,7 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Build with Maven
-        run: mvn -B -C -Dtest=\!HttpClientConnectorIT verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        run: mvn -B -C -Dgroups='!unstableGithub' verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
