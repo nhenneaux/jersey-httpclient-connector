@@ -1,5 +1,6 @@
 package com.github.nhenneaux.jersey.connector.httpclient;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.glassfish.jersey.client.ClientConfig;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -11,6 +12,7 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
@@ -94,6 +96,67 @@ class JettyServerTest {
             assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
         }
     }
+
+    @Test
+    @Timeout(20)
+    void testPostAsync() throws Exception {
+        int port = PORT;
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
+        try (AutoCloseable ignored = jerseyServer(
+                port,
+                tlsSecurityConfiguration,
+                DummyRestService.class)) {
+            String data = UUID.randomUUID().toString();
+            final Response response = getClient(port).path("post").request().async().post(Entity.json(new DummyRestService.Data(data))).get();
+            assertEquals(200, response.getStatus());
+            assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
+        }
+    }
+
+    @Test
+    @Timeout(20)
+    void testPostString() throws Exception {
+        int port = PORT;
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
+        try (AutoCloseable ignored = jerseyServer(
+                port,
+                tlsSecurityConfiguration,
+                DummyRestService.class)) {
+            String data = UUID.randomUUID().toString();
+
+            final var objectMapper = new ObjectMapper();
+            final var valueAsString = objectMapper.writeValueAsString(new DummyRestService.Data(data));
+            final Response response = getClient(port).path("post").request().post(Entity.entity(
+                    valueAsString,
+                    MediaType.APPLICATION_JSON_TYPE
+            ));
+            assertEquals(200, response.getStatus());
+            assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
+        }
+    }
+
+    @Test
+    @Timeout(20)
+    void testPostBytes() throws Exception {
+        int port = PORT;
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
+        try (AutoCloseable ignored = jerseyServer(
+                port,
+                tlsSecurityConfiguration,
+                DummyRestService.class)) {
+            String data = UUID.randomUUID().toString();
+
+            final var objectMapper = new ObjectMapper();
+            final var writeValueAsBytes = objectMapper.writeValueAsBytes(new DummyRestService.Data(data));
+            final Response response = getClient(port).path("post").request().post(Entity.entity(
+                    writeValueAsBytes,
+                    MediaType.APPLICATION_JSON_TYPE
+            ));
+            assertEquals(200, response.getStatus());
+            assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
+        }
+    }
+
 
     @Test
     @Timeout(20)

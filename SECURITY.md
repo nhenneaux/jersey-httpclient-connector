@@ -5,7 +5,7 @@
 Version `1.1.x` and `0.3.x` are maintained, others are not.
 
 | Version | Supported          |
-|---------| ------------------ |
+|---------|--------------------|
 | 1.1.x   | :white_check_mark: |
 | 0.3.x   | :white_check_mark: |
 | 1.0.x   | :x:                |
