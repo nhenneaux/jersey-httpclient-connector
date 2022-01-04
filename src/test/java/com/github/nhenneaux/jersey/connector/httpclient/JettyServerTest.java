@@ -99,6 +99,22 @@ class JettyServerTest {
 
     @Test
     @Timeout(20)
+    void testPostAsync() throws Exception {
+        int port = PORT;
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
+        try (AutoCloseable ignored = jerseyServer(
+                port,
+                tlsSecurityConfiguration,
+                DummyRestService.class)) {
+            String data = UUID.randomUUID().toString();
+            final Response response = getClient(port).path("post").request().async().post(Entity.json(new DummyRestService.Data(data))).get();
+            assertEquals(200, response.getStatus());
+            assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
+        }
+    }
+
+    @Test
+    @Timeout(20)
     void testPostString() throws Exception {
         int port = PORT;
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
@@ -118,6 +134,7 @@ class JettyServerTest {
             assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
         }
     }
+
     @Test
     @Timeout(20)
     void testPostBytes() throws Exception {
