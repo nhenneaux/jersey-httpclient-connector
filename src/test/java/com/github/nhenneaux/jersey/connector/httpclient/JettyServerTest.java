@@ -61,7 +61,7 @@ class JettyServerTest {
                 getKeyStore("TEST==ONLY==key-store-password".toCharArray(), "keystore.p12"),
                 "localhost with alternate ip",
                 "TEST==ONLY==key-store-password",
-                "TLSv1.2"
+                "TLSv1.3"
         );
     }
 
@@ -90,6 +90,23 @@ class JettyServerTest {
                 DummyRestService.class)) {
             String data = UUID.randomUUID().toString();
             final Response response = getClient(port).path("post").request().post(Entity.json(new DummyRestService.Data(data)));
+            assertEquals(200, response.getStatus());
+            assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
+        }
+    }
+
+    @Test
+    @Timeout(20)
+    void testMethodPost() throws Exception {
+        int port = PORT;
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
+        try (AutoCloseable ignored = jerseyServer(
+                port,
+                tlsSecurityConfiguration,
+                DummyRestService.class)) {
+            String data = UUID.randomUUID().toString();
+            final Response response = getClient(port).path("post").request()
+                    .method("POST", Entity.json(new DummyRestService.Data(data)));
             assertEquals(200, response.getStatus());
             assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
         }

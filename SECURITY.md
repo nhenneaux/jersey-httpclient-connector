@@ -2,13 +2,14 @@
 
 ## Supported Versions
 
-Version `1.0.x` and `0.2.x` are maintained, previous are not.
+Version `1.1.x` and `0.3.x` are maintained, others are not.
 
 | Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| 0.2.x   | :white_check_mark: |
-| < 0.2.  | :x:                |
+|---------| ------------------ |
+| 1.1.x   | :white_check_mark: |
+| 0.3.x   | :white_check_mark: |
+| 1.0.x   | :x:                |
+| < 0.3.  | :x:                |
 
 ## Reporting a Vulnerability
 

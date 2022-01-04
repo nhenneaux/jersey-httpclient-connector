@@ -29,8 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.awaitility.Awaitility.await;
@@ -127,26 +125,6 @@ class HttpClientConnectorTest {
     }
 
     @Test
-    void shouldIgnoreObjectsInIsGreaterThanZero() {
-        assertFalse(HttpClientConnector.isGreaterThanZero(new Object()));
-    }
-
-    @Test
-    void shouldHandleNegativeInIsGreaterThanZero() {
-        assertFalse(HttpClientConnector.isGreaterThanZero(-1));
-    }
-
-    @Test
-    void shouldHandleZeroInIsGreaterThanZero() {
-        assertFalse(HttpClientConnector.isGreaterThanZero(0));
-    }
-
-    @Test
-    void shouldHandlePositiveInIsGreaterThanZero() {
-        assertTrue(HttpClientConnector.isGreaterThanZero(1));
-    }
-
-    @Test
     void shouldThrowWhenConnectingStreamAlreadyConnected() throws IOException {
         final PipedInputStream pipedInputStream = new PipedInputStream();
         final PipedOutputStream pipedOutputStream = new PipedOutputStream();
@@ -188,15 +166,15 @@ class HttpClientConnectorTest {
         responseFuture.completeExceptionally(expectedException);
 
         // When
-        final ProcessingException processingException = assertThrows(ProcessingException.class, () -> httpClientConnector.waitResponse(responseFuture, 10));
+        final ProcessingException processingException = assertThrows(ProcessingException.class, () -> httpClientConnector.waitResponse(responseFuture));
 
         // Then
         assertEquals("The async sending process failed with error, java.lang.Exception: " + message, processingException.getMessage());
-        assertSame(expectedException, processingException.getCause().getCause());
+        assertSame(expectedException, processingException.getCause());
     }
 
     @Test
-    void shouldUseTimeoutWhenNonZeroReadTimeout() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldUseTimeoutWhenNonZeroReadTimeout() throws InterruptedException, ExecutionException {
         // Given
         final HttpClient httpClient = mock(HttpClient.class);
         @SuppressWarnings("unchecked") final CompletableFuture<HttpResponse<InputStream>> responseFuture = mock(CompletableFuture.class);
@@ -205,10 +183,10 @@ class HttpClientConnectorTest {
 
 
         // When
-        httpClientConnector.waitResponse(responseFuture, 10);
+        httpClientConnector.waitResponse(responseFuture);
 
         // Then
-        verify(responseFuture).get(10, TimeUnit.MILLISECONDS);
+        verify(responseFuture).get();
     }
 
     @Test
@@ -221,7 +199,7 @@ class HttpClientConnectorTest {
 
 
         // When
-        httpClientConnector.waitResponse(responseFuture, 0);
+        httpClientConnector.waitResponse(responseFuture);
 
         // Then
         verify(responseFuture).get();
