@@ -202,7 +202,7 @@ class HttpClientConnectorIT {
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         final Exception expectedException = Assertions.assertThrows(Exception.class,
                 () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
-        assertEquals(TimeoutException.class, expectedException.getCause().getClass());
+        assertEquals(HttpConnectTimeoutException.class, expectedException.getCause().getClass());
     }
 
     @Test
