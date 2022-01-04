@@ -174,6 +174,17 @@ class HttpClientConnectorIT {
     }
 
     @Test
+    void shouldWorkWithJaxRsClientWithMethodPost() {
+        final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
+        final WebTarget target = client.target(HTTPS_DEVOXX_BE);
+        final Response response = target.request()
+                .method("POST", Entity.json(JSON));
+        assertEquals(200, response.getStatus());
+        assertNotNull(response.readEntity(String.class));
+        response.close();
+    }
+
+    @Test
     void shouldWorkWithJaxRsClientWithJsonPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
@@ -191,7 +202,7 @@ class HttpClientConnectorIT {
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
         final Exception expectedException = Assertions.assertThrows(Exception.class,
                 () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
-        assertEquals(TimeoutException.class, expectedException.getCause().getClass());
+        assertEquals(HttpConnectTimeoutException.class, expectedException.getCause().getClass());
     }
 
     @Test

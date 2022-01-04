@@ -95,7 +95,15 @@ public class JettyServer implements AutoCloseable {
 
         sslContextFactory.setIncludeProtocols(tlsSecurityConfiguration.protocol);
         sslContextFactory.setProtocol(tlsSecurityConfiguration.protocol);
-        sslContextFactory.setIncludeCipherSuites("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
+        sslContextFactory.setIncludeCipherSuites(
+                "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+                "TLS_AES_128_CCM_8_SHA256",//TLSv1.3
+                "TLS_AES_128_CCM_SHA256",//TLSv1.3
+                "TLS_AES_128_GCM_SHA256",//TLSv1.3
+                "TLS_AES_256_GCM_SHA384",//TLSv1.3
+                "TLS_CHACHA20_POLY1305_SHA256"//TLSv1.3
+        );
 
         sslContextFactory.setExcludeProtocols(WEAK_PROTOCOLS.toArray(new String[0]));
 
