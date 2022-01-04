@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.connector.httpclient</groupId>
     <artifactId>jersey-httpclient-connector</artifactId>
-    <version>1.0.14</version>
+    <version>1.1.0</version>
 
     <name>Jersey Connector using java.net.http.HttpClient</name>
     <description>A Jersey connector using java.net.http.HttpClient and supporting HTTP/1.1 and HTTP/2.0 with the same client. The protocol is selected based on the server capabilities.</description>
@@ -127,7 +127,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>4.1.0</version>
+            <version>4.2.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -236,7 +236,6 @@
                     <!-- Set this to true and the release will automatically proceed and -->
                     <!-- sync to Central Repository will follow -->
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
-
                 </configuration>
                 <dependencies>
                     <dependency>
