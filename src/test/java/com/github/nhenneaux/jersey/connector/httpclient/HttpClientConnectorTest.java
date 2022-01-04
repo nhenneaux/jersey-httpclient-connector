@@ -29,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.awaitility.Awaitility.await;
@@ -125,7 +124,6 @@ class HttpClientConnectorTest {
         assertSame(ioException, executionException.getCause().getCause());
     }
 
-
     @Test
     void shouldThrowWhenConnectingStreamAlreadyConnected() throws IOException {
         final PipedInputStream pipedInputStream = new PipedInputStream();
@@ -176,7 +174,7 @@ class HttpClientConnectorTest {
     }
 
     @Test
-    void shouldUseTimeoutWhenNonZeroReadTimeout() throws InterruptedException, ExecutionException, TimeoutException {
+    void shouldUseTimeoutWhenNonZeroReadTimeout() throws InterruptedException, ExecutionException {
         // Given
         final HttpClient httpClient = mock(HttpClient.class);
         @SuppressWarnings("unchecked") final CompletableFuture<HttpResponse<InputStream>> responseFuture = mock(CompletableFuture.class);
