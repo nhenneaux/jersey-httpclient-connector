@@ -230,7 +230,6 @@
                 <version>1.6.8</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <stagingProgressTimeoutMinutes>180</stagingProgressTimeoutMinutes>
                     <serverId>ossrh</serverId>
                     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                     <!-- Set this to true and the release will automatically proceed and -->
@@ -264,6 +263,7 @@
 
         <pluginManagement>
             <plugins>
+
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
