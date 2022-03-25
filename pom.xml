@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.connector.httpclient</groupId>
     <artifactId>jersey-httpclient-connector</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
 
     <name>Jersey Connector using java.net.http.HttpClient</name>
     <description>A Jersey connector using java.net.http.HttpClient and supporting HTTP/1.1 and HTTP/2.0 with the same client. The protocol is selected based on the server capabilities.</description>
@@ -24,9 +24,9 @@
 
         <jersey.version>2.35</jersey.version>
 
-        <jetty.version>9.4.44.v20210927</jetty.version>
-        <weld-se-core.version>3.1.8.Final</weld-se-core.version>
-        <log4j.version>2.17.1</log4j.version>
+        <jetty.version>9.4.45.v20220203</jetty.version>
+        <weld-se-core.version>3.1.9.Final</weld-se-core.version>
+        <log4j.version>2.17.2</log4j.version>
     </properties>
 
     <dependencies>
