@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.connector.httpclient</groupId>
     <artifactId>jersey-httpclient-connector</artifactId>
-    <version>0.3.1</version>
+    <version>0.3.2</version>
 
     <name>Jersey Connector using java.net.http.HttpClient</name>
     <description>A Jersey connector using java.net.http.HttpClient and supporting HTTP/1.1 and HTTP/2.0 with the same client. The protocol is selected based on the server capabilities.</description>
@@ -22,11 +22,11 @@
         <sonar.organization>nhenneaux</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
 
-        <jersey.version>2.35</jersey.version>
+        <jersey.version>2.36</jersey.version>
 
-        <jetty.version>9.4.45.v20220203</jetty.version>
+        <jetty.version>9.4.48.v20220622</jetty.version>
         <weld-se-core.version>3.1.9.Final</weld-se-core.version>
-        <log4j.version>2.17.2</log4j.version>
+        <log4j.version>2.18.0</log4j.version>
     </properties>
 
     <dependencies>
@@ -104,7 +104,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.32</version>
+            <version>1.7.36</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -129,13 +129,13 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>4.1.1</version>
+            <version>4.2.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>4.2.0</version>
+            <version>4.6.1</version>
             <scope>test</scope>
         </dependency>
 
@@ -153,7 +153,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.7</version>
+                <version>0.8.8</version>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>
