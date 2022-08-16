@@ -6,7 +6,6 @@ import jakarta.ws.rs.core.Configuration;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientRequest;
 import org.glassfish.jersey.client.ClientResponse;
-import org.glassfish.jersey.client.JerseyClient;
 import org.glassfish.jersey.client.spi.AsyncConnectorCallback;
 import org.glassfish.jersey.client.spi.Connector;
 import org.glassfish.jersey.message.internal.Statuses;
@@ -26,6 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.glassfish.jersey.client.ClientProperties.CONNECT_TIMEOUT;
 import static org.glassfish.jersey.client.ClientProperties.PROXY_URI;
@@ -131,22 +131,34 @@ public class HttpClientConnector implements Connector {
     }
 
     private CompletableFuture<HttpResponse<InputStream>> sendAsync(ClientRequest clientRequest) {
-        final HttpRequest.Builder requestBuilder = toHttpClientRequestBuilder(clientRequest);
+        final HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
+        clientRequest.getRequestHeaders().forEach((key, value1) -> value1.forEach(value -> requestBuilder.header(key, value)));
+        requestBuilder.uri(clientRequest.getUri());
+
+        final var readTimeoutOptional = Optional.of(clientRequest)
+                .map(ClientRequest::getConfiguration)
+                .flatMap(configuration -> getDurationTimeout(configuration, READ_TIMEOUT));
+        readTimeoutOptional
+                .ifPresent(requestBuilder::timeout);
+
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture;
         final Object entity = clientRequest.getEntity();
+
+        final var responseBodyHandler = HttpResponse.BodyHandlers.ofInputStream();
         if (entity == null) {
             requestBuilder.method(clientRequest.getMethod(), HttpRequest.BodyPublishers.noBody());
-            httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream());
+            httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), responseBodyHandler);
         } else if (entity instanceof byte[]) {
             requestBuilder.method(clientRequest.getMethod(), HttpRequest.BodyPublishers.ofByteArray((byte[]) entity));
-            httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream());
+            httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), responseBodyHandler);
         } else if (entity instanceof String) {
             requestBuilder.method(clientRequest.getMethod(), HttpRequest.BodyPublishers.ofString((String) entity));
-            httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream());
+            httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), responseBodyHandler);
         } else {
             httpResponseCompletableFuture = streamRequestBody(clientRequest, requestBuilder);
         }
-        return httpResponseCompletableFuture;
+        return readTimeoutOptional.map(readTimeout -> httpResponseCompletableFuture.orTimeout(readTimeout.toMillis() + 100, TimeUnit.MILLISECONDS))
+                .orElse(httpResponseCompletableFuture);
     }
 
     Future<ClientResponse> toJerseyResponseWithCallback(ClientRequest clientRequest, CompletableFuture<HttpResponse<InputStream>> inputStreamHttpResponseFuture, AsyncConnectorCallback asyncConnectorCallback) {
@@ -183,20 +195,6 @@ public class HttpClientConnector implements Connector {
         final CompletableFuture<Void> sendingFuture = httpClient.executor().map(executor -> CompletableFuture.runAsync(entityWriter, executor)).orElseGet(() -> CompletableFuture.runAsync(entityWriter));
 
         return sendingFuture.thenCombine(httpResponseCompletableFuture, (aVoid, inputStreamHttpResponse) -> inputStreamHttpResponse);
-    }
-
-    private HttpRequest.Builder toHttpClientRequestBuilder(ClientRequest clientRequest) {
-        final HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
-        clientRequest.getRequestHeaders().forEach((key, value1) -> value1.forEach(value -> requestBuilder.header(key, value)));
-        requestBuilder.uri(clientRequest.getUri());
-
-        Optional.of(clientRequest)
-                .map(ClientRequest::getClient)
-                .map(JerseyClient::getConfiguration)
-                .flatMap(configuration -> getDurationTimeout(configuration, READ_TIMEOUT))
-                .ifPresent(requestBuilder::timeout);
-
-        return requestBuilder;
     }
 
     public HttpClient getHttpClient() {
