@@ -108,6 +108,7 @@ public class HttpClientConnector implements Connector {
             try {
                 return httpResponseCompletableFuture.get();
             } catch (ExecutionException e) {
+                httpResponseCompletableFuture.cancel(true);
                 throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e.getCause());
             }
         });
@@ -132,7 +133,7 @@ public class HttpClientConnector implements Connector {
 
     private CompletableFuture<HttpResponse<InputStream>> sendAsync(ClientRequest clientRequest) {
         final HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
-        clientRequest.getRequestHeaders().forEach((key, value1) -> value1.forEach(value -> requestBuilder.header(key, value)));
+        clientRequest.getRequestHeaders().forEach((key, values) -> values.forEach(value -> requestBuilder.header(key, value)));
         requestBuilder.uri(clientRequest.getUri());
 
         final var readTimeoutOptional = Optional.of(clientRequest)
@@ -188,6 +189,7 @@ public class HttpClientConnector implements Connector {
             try {
                 clientRequest.writeEntity();
             } catch (IOException e) {
+                httpResponseCompletableFuture.cancel(true);
                 throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);
             }
         };
