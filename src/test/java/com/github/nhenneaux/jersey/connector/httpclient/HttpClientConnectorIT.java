@@ -36,6 +36,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -167,10 +171,11 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
-        final Response response = target.request().post(Entity.json(JSON));
+        try (final Response response = target.request().post(Entity.json(JSON))) {
 
-        assertEquals(200, response.getStatus());
-        assertNotNull(response.readEntity(String.class));
+            assertEquals(200, response.getStatus());
+            assertNotNull(response.readEntity(String.class));
+        }
     }
 
     @Test
@@ -188,10 +193,11 @@ class HttpClientConnectorIT {
     void shouldWorkWithJaxRsClientWithJsonPost() {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
-        final Response response = target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE));
+        try (final Response response = target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE))) {
 
-        assertEquals(200, response.getStatus());
-        assertNotNull(response.readEntity(String.class));
+            assertEquals(200, response.getStatus());
+            assertNotNull(response.readEntity(String.class));
+        }
     }
 
     @Test
@@ -200,22 +206,37 @@ class HttpClientConnectorIT {
         final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         client.property(ClientProperties.READ_TIMEOUT, 10);
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
+        final var request = target.request();
         final Exception expectedException = Assertions.assertThrows(Exception.class,
-                () -> target.request().post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE)));
+                () -> {
+                    //noinspection EmptyTryBlock
+                    try (var ignored = request.post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE))){
+                        // nothing to do
+                    }
+                });
         assertEquals(HttpConnectTimeoutException.class, expectedException.getCause().getClass());
     }
 
     @Test
-    @Timeout(2L)
+    @Timeout(3L)
     void shouldWorkWithJaxRsClientWithLongTimeoutFailure() {
-        final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
-        client.property(ClientProperties.READ_TIMEOUT, 1_000);
+        final var timeout = 1_000;
+        final Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())))
+                .property(ClientProperties.READ_TIMEOUT, timeout);
+
         final WebTarget target = client.target("https://httpstat.us")
                 .path("200")
                 .queryParam("sleep", "5000");
 
+        final var start = System.nanoTime();
         Invocation.Builder request = target.request();
+        final var margin = 400L;
+
         final ProcessingException processingException = Assertions.assertThrows(ProcessingException.class, request::get);
+
+        final var durationInMillis = Duration.ofNanos(System.nanoTime() - start).toMillis();
+        assertThat(durationInMillis, is(both(greaterThan(timeout - margin)).and(lessThan(timeout + margin))));
+        System.out.println("end in " + durationInMillis + " ms");
         assertThat(processingException.getCause(), Matchers.anyOf(Matchers.instanceOf(HttpConnectTimeoutException.class), Matchers.instanceOf(HttpTimeoutException.class)));
 
     }
@@ -334,10 +355,11 @@ class HttpClientConnectorIT {
                 MediaType.APPLICATION_OCTET_STREAM_TYPE);
         multiPart.bodyPart(fileDataBodyPart);
 
-        Response response = target.request(MediaType.APPLICATION_JSON_TYPE)
-                .post(Entity.entity(multiPart, multiPart.getMediaType()));
-        assertEquals(200, response.getStatus());
-        assertNotNull(response.readEntity(String.class));
+        try (Response response = target.request(MediaType.APPLICATION_JSON_TYPE)
+                .post(Entity.entity(multiPart, multiPart.getMediaType()))) {
+            assertEquals(200, response.getStatus());
+            assertNotNull(response.readEntity(String.class));
+        }
     }
 
     private static class NoOpCallback implements InvocationCallback<Response> {
