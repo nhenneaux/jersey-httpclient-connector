@@ -72,7 +72,7 @@ class HttpClientConnectorTest {
         when(requestBuilder.method(eq(method), any(IS_PUBLISHER_CLASS))).thenReturn(requestBuilderWithMethod);
         when(requestBuilderWithMethod.build()).thenReturn(httpRequest);
         // When
-        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClientConnector.streamRequestBody(clientRequest, requestBuilder);
+        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClientConnector.streamRequestBody(clientRequest, requestBuilder, HttpResponse.BodyHandlers.ofInputStream(), method);
 
         // Then
         await()
@@ -111,26 +111,23 @@ class HttpClientConnectorTest {
         when(requestBuilderWithMethod.build()).thenReturn(httpRequest);
         final IOException ioException = new IOException(UUID.randomUUID().toString());
         doThrow(ioException).when(clientRequest).writeEntity();
+        final var responseBodyHandler = HttpResponse.BodyHandlers.ofInputStream();
         // When
-        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClientConnector.streamRequestBody(clientRequest, requestBuilder);
+        final var processingException = assertThrows(ProcessingException.class, () -> httpClientConnector.streamRequestBody(clientRequest, requestBuilder, responseBodyHandler, method));
 
         // Then
-        await()
-                .atMost(Duration.ofSeconds(5L))
-                .until(httpResponseCompletableFuture::isDone);
-        assertTrue(httpResponseCompletableFuture.isCompletedExceptionally());
-        final ExecutionException executionException = assertThrows(ExecutionException.class, httpResponseCompletableFuture::get);
-        assertEquals("The sending process failed with I/O error, " + ioException.getMessage(), executionException.getCause().getMessage());
-        assertSame(ioException, executionException.getCause().getCause());
+        assertEquals("The sending process failed with I/O error, " + ioException.getMessage(), processingException.getMessage());
+        assertSame(ioException, processingException.getCause());
     }
 
     @Test
     void shouldThrowWhenConnectingStreamAlreadyConnected() throws IOException {
-        final PipedInputStream pipedInputStream = new PipedInputStream();
-        final PipedOutputStream pipedOutputStream = new PipedOutputStream();
-        pipedOutputStream.connect(pipedInputStream);
-        final ProcessingException expectedException = assertThrows(ProcessingException.class, () -> HttpClientConnector.connectStream(pipedOutputStream, pipedInputStream));
-        assertEquals("The input stream cannot be connected to the output stream, Already connected", expectedException.getMessage());
+        try (final PipedInputStream pipedInputStream = new PipedInputStream();
+             final PipedOutputStream pipedOutputStream = new PipedOutputStream()) {
+            pipedOutputStream.connect(pipedInputStream);
+            final ProcessingException expectedException = assertThrows(ProcessingException.class, () -> HttpClientConnector.connectStream(pipedOutputStream, pipedInputStream));
+            assertEquals("The input stream cannot be connected to the output stream, Already connected", expectedException.getMessage());
+        }
     }
 
     @Test
