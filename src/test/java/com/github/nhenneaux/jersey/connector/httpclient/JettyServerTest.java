@@ -208,7 +208,7 @@ class JettyServerTest {
                 // nothing to do expecting exception
             }
         });
-        assertThat( processingException.getMessage(), Matchers.containsString("java.net.ConnectException"));
+        assertThat(processingException.getMessage(), Matchers.containsString("java.net.ConnectException"));
     }
 
 
