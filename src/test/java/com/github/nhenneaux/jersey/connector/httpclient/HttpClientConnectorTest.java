@@ -8,7 +8,6 @@ import org.glassfish.jersey.client.ClientRequest;
 import org.glassfish.jersey.client.ClientResponse;
 import org.glassfish.jersey.client.spi.AsyncConnectorCallback;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 import javax.net.ssl.SSLContext;
@@ -72,7 +71,7 @@ class HttpClientConnectorTest {
         when(requestBuilder.method(eq(method), any(IS_PUBLISHER_CLASS))).thenReturn(requestBuilderWithMethod);
         when(requestBuilderWithMethod.build()).thenReturn(httpRequest);
         // When
-        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClientConnector.streamRequestBody(clientRequest, requestBuilder, HttpResponse.BodyHandlers.ofInputStream(), method);
+        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClientConnector.streamRequestBody(clientRequest, requestBuilder, ignored -> CompletableFuture.completedFuture(httpResponse), method);
 
         // Then
         await()
@@ -111,13 +110,13 @@ class HttpClientConnectorTest {
         when(requestBuilderWithMethod.build()).thenReturn(httpRequest);
         final IOException ioException = new IOException(UUID.randomUUID().toString());
         doThrow(ioException).when(clientRequest).writeEntity();
-        final var responseBodyHandler = HttpResponse.BodyHandlers.ofInputStream();
+
         // When
-        final var processingException = assertThrows(ProcessingException.class, () -> httpClientConnector.streamRequestBody(clientRequest, requestBuilder, responseBodyHandler, method));
+        final var processingException = assertThrows(ProcessingException.class, () -> httpClientConnector.streamRequestBody(clientRequest, requestBuilder, ignored -> CompletableFuture.completedFuture(null), method));
 
         // Then
-        assertEquals("The sending process failed with I/O error, " + ioException.getMessage(), processingException.getMessage());
-        assertSame(ioException, processingException.getCause());
+        assertEquals("java.util.concurrent.ExecutionException: jakarta.ws.rs.ProcessingException: The sending process failed with I/O error, " + ioException.getMessage(), processingException.getMessage());
+        assertSame(ioException, processingException.getCause().getCause().getCause());
     }
 
     @Test
@@ -149,58 +148,6 @@ class HttpClientConnectorTest {
 
     }
 
-    @Test
-    @Timeout(1)
-    void shouldHandleExceptionWhenWaitingResponse() {
-        // Given
-        final HttpClient httpClient = mock(HttpClient.class);
-        final CompletableFuture<HttpResponse<InputStream>> responseFuture = new CompletableFuture<>();
-
-        final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
-
-        final String message = UUID.randomUUID().toString();
-        final Exception expectedException = new Exception(message);
-        responseFuture.completeExceptionally(expectedException);
-
-        // When
-        final ProcessingException processingException = assertThrows(ProcessingException.class, () -> httpClientConnector.waitResponse(responseFuture));
-
-        // Then
-        assertEquals("The async sending process failed with error, java.lang.Exception: " + message, processingException.getMessage());
-        assertSame(expectedException, processingException.getCause());
-    }
-
-    @Test
-    void shouldUseTimeoutWhenNonZeroReadTimeout() throws InterruptedException, ExecutionException {
-        // Given
-        final HttpClient httpClient = mock(HttpClient.class);
-        @SuppressWarnings("unchecked") final CompletableFuture<HttpResponse<InputStream>> responseFuture = mock(CompletableFuture.class);
-
-        final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
-
-
-        // When
-        httpClientConnector.waitResponse(responseFuture);
-
-        // Then
-        verify(responseFuture).get();
-    }
-
-    @Test
-    void shouldNotUseTimeoutGetWhenZeroReadTimeout() throws InterruptedException, ExecutionException {
-        // Given
-        final HttpClient httpClient = mock(HttpClient.class);
-        @SuppressWarnings("unchecked") final CompletableFuture<HttpResponse<InputStream>> responseFuture = mock(CompletableFuture.class);
-
-        final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
-
-
-        // When
-        httpClientConnector.waitResponse(responseFuture);
-
-        // Then
-        verify(responseFuture).get();
-    }
 
     @Test
     void shouldHandleCallbackOnFailure() {
