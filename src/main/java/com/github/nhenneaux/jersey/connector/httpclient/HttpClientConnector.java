@@ -1,6 +1,7 @@
 package com.github.nhenneaux.jersey.connector.httpclient;
 
 
+import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.ClientRequest;
 import org.glassfish.jersey.client.ClientResponse;
 import org.glassfish.jersey.client.spi.AsyncConnectorCallback;
@@ -11,6 +12,7 @@ import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.core.Configuration;
 import javax.ws.rs.core.Response;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
@@ -27,6 +29,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.glassfish.jersey.client.ClientProperties.CONNECT_TIMEOUT;
 import static org.glassfish.jersey.client.ClientProperties.PROXY_URI;
@@ -50,6 +55,8 @@ import static org.glassfish.jersey.client.ClientProperties.READ_TIMEOUT;
  */
 public class HttpClientConnector implements Connector {
 
+    private static final Runnable NO_OP = () -> {
+    };
     private final HttpClient httpClient;
 
     public HttpClientConnector(HttpClient httpClient) {
@@ -72,7 +79,7 @@ public class HttpClientConnector implements Connector {
                 .build();
     }
 
-    static HttpResponse<InputStream> handleInterruption(Interruptable interruptable) {
+    static <R> R handleInterruption(Interruptable<R> interruptable) {
         try {
             return interruptable.execute();
         } catch (InterruptedException e) {
@@ -98,19 +105,16 @@ public class HttpClientConnector implements Connector {
 
     @Override
     public ClientResponse apply(ClientRequest clientRequest) {
-        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = sendAsync(clientRequest);
-        final HttpResponse<InputStream> inputStreamHttpResponse = waitResponse(httpResponseCompletableFuture);
-
-        return toJerseyResponse(clientRequest, inputStreamHttpResponse);
+        final HttpResponse<InputStream> response = send(clientRequest, this::send);
+        return toJerseyResponse(clientRequest, response);
     }
 
-    HttpResponse<InputStream> waitResponse(CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture) {
+    HttpResponse<InputStream> send(HttpRequest request) {
         return handleInterruption(() -> {
             try {
-                return httpResponseCompletableFuture.get();
-            } catch (ExecutionException e) {
-                httpResponseCompletableFuture.cancel(true);
-                throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e.getCause());
+                return httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            } catch (IOException e) {
+                throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
             }
         });
     }
@@ -126,13 +130,20 @@ public class HttpClientConnector implements Connector {
 
     @Override
     public Future<?> apply(ClientRequest clientRequest, AsyncConnectorCallback asyncConnectorCallback) {
-
-        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = sendAsync(clientRequest);
-
+        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = send(clientRequest, this::getSendAsync);
         return toJerseyResponseWithCallback(clientRequest, httpResponseCompletableFuture, asyncConnectorCallback);
     }
 
-    private CompletableFuture<HttpResponse<InputStream>> sendAsync(ClientRequest clientRequest) {
+    private CompletableFuture<HttpResponse<InputStream>> getSendAsync(HttpRequest request) {
+        final var httpResponseCompletableFuture = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream());
+        return futureTimeout(request, httpResponseCompletableFuture);
+    }
+
+    private static <T> CompletableFuture<T> futureTimeout(HttpRequest request, CompletableFuture<T> future) {
+        return request.timeout().map(readTimeout -> future.orTimeout(readTimeout.toMillis() + 100, TimeUnit.MILLISECONDS)).orElse(future);
+    }
+
+    private <R> R send(ClientRequest clientRequest, Function<HttpRequest, R> sender) {
         final HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
         clientRequest.getRequestHeaders().forEach((key, values) -> values.forEach(value -> requestBuilder.header(key, value)));
         requestBuilder.uri(clientRequest.getUri());
@@ -143,25 +154,41 @@ public class HttpClientConnector implements Connector {
         readTimeoutOptional
                 .ifPresent(requestBuilder::timeout);
 
-        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture;
+
         final Object entity = clientRequest.getEntity();
 
-        final var responseBodyHandler = HttpResponse.BodyHandlers.ofInputStream();
         final var method = clientRequest.getMethod();
         if (entity == null) {
             requestBuilder.method(method, HttpRequest.BodyPublishers.noBody());
-            httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), responseBodyHandler);
-        } else if (entity instanceof byte[]) {
-            requestBuilder.method(method, HttpRequest.BodyPublishers.ofByteArray((byte[]) entity));
-            httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), responseBodyHandler);
-        } else if (entity instanceof String) {
-            requestBuilder.method(method, HttpRequest.BodyPublishers.ofString((String) entity));
-            httpResponseCompletableFuture = httpClient.sendAsync(requestBuilder.build(), responseBodyHandler);
-        } else {
-            httpResponseCompletableFuture = streamRequestBody(clientRequest, requestBuilder, responseBodyHandler, method);
+            return sender.apply(requestBuilder.build());
         }
-        return readTimeoutOptional.map(readTimeout -> httpResponseCompletableFuture.orTimeout(readTimeout.toMillis() + 100, TimeUnit.MILLISECONDS))
-                .orElse(httpResponseCompletableFuture);
+
+
+        if (entity instanceof byte[]) {
+            requestBuilder.method(method, HttpRequest.BodyPublishers.ofByteArray((byte[]) entity));
+            return sender.apply(requestBuilder.build());
+        }
+        if (entity instanceof String) {
+            requestBuilder.method(method, HttpRequest.BodyPublishers.ofString((String) entity));
+            return sender.apply(requestBuilder.build());
+        }
+        clientRequest.enableBuffering();
+
+        final var chunkedEnabled = Optional.of(clientRequest)
+                .map(ClientRequest::getConfiguration)
+                .map(configuration -> configuration.getProperty(ClientProperties.REQUEST_ENTITY_PROCESSING))
+                .map(String.class::cast)
+                .filter("CHUNKED"::equals)
+                .isPresent();
+        if (chunkedEnabled) {
+            return streamRequestBody(clientRequest, requestBuilder, sender, method);
+        }
+        final var buffer = new AtomicReference<ByteArrayOutputStream>();
+
+        clientRequest.setStreamProvider(size -> size > 0 ? buffer.updateAndGet(ignored -> new ByteArrayOutputStream(size)) : buffer.updateAndGet(ignored -> new ByteArrayOutputStream()));
+        writeEntity(clientRequest, NO_OP);
+        final HttpRequest httpRequest = requestBuilder.method(method, HttpRequest.BodyPublishers.ofByteArray(buffer.get().toByteArray())).build();
+        return sender.apply(httpRequest);
     }
 
 
@@ -177,7 +204,7 @@ public class HttpClientConnector implements Connector {
         return clientResponseCompletableFuture;
     }
 
-     CompletableFuture<HttpResponse<InputStream>> streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder, HttpResponse.BodyHandler<InputStream> responseBodyHandler, String method) {
+    <R> R streamRequestBody(ClientRequest clientRequest, HttpRequest.Builder requestBuilder, Function<HttpRequest, R> sender, String method) {
         @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
         final PipedOutputStream pipedOutputStream = new PipedOutputStream();
         @SuppressWarnings("squid:S2095") // The stream cannot be closed here and is closed in Jersey client.
@@ -186,14 +213,34 @@ public class HttpClientConnector implements Connector {
         clientRequest.setStreamProvider(contentLength -> pipedOutputStream);
 
         final HttpRequest httpRequest = requestBuilder.method(method, HttpRequest.BodyPublishers.ofInputStream(() -> pipedInputStream)).build();
-        final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClient.sendAsync(httpRequest, responseBodyHandler);
+
+        final CompletableFuture<R> httpCallFuture = supplyAsync(httpRequest, () -> sender.apply(httpRequest));
+
+
+        CompletableFuture<Void> sendingRequestFuture = supplyAsync(httpRequest, () -> writeEntity(clientRequest, () -> httpCallFuture.cancel(true)));
+
+        return handleInterruption(() -> {
+            try {
+                return sendingRequestFuture.thenCombine(httpCallFuture, (aVoid, inputStreamHttpResponse) -> inputStreamHttpResponse).get();
+            } catch (ExecutionException e) {
+                throw new ProcessingException(e);
+            }
+        });
+
+    }
+
+    private <T> CompletableFuture<T> supplyAsync(HttpRequest httpRequest, Supplier<T> entityWriter) {
+        return futureTimeout(httpRequest, httpClient.executor().map(executor -> CompletableFuture.supplyAsync(entityWriter, executor)).orElseGet(() -> CompletableFuture.supplyAsync(entityWriter)));
+    }
+
+    private static Void writeEntity(ClientRequest clientRequest, Runnable onError) {
         try {
             clientRequest.writeEntity();
+            return null;
         } catch (IOException e) {
-            httpResponseCompletableFuture.cancel(true);
+            onError.run();
             throw new ProcessingException("The sending process failed with I/O error, " + e.getMessage(), e);
         }
-        return httpResponseCompletableFuture;
     }
 
     public HttpClient getHttpClient() {
@@ -210,8 +257,8 @@ public class HttpClientConnector implements Connector {
         // Nothing to close
     }
 
-    interface Interruptable {
-        HttpResponse<InputStream> execute() throws InterruptedException;
+    interface Interruptable<R> {
+        R execute() throws InterruptedException;
     }
 
 }
