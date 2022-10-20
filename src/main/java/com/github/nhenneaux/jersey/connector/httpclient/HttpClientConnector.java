@@ -113,7 +113,7 @@ public class HttpClientConnector implements Connector {
             try {
                 return httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             } catch (IOException e) {
-                throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
+                throw new ProcessingException("The HTTP sending process failed with error, " + e.getMessage(), e);
             }
         });
     }
