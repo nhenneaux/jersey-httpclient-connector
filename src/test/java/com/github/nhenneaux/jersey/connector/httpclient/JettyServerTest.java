@@ -11,8 +11,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -56,7 +54,9 @@ class JettyServerTest {
 
     static WebTarget getClient(int port) {
         return getClient(port, trustStore(), http2ClientConfig());
-    }    static WebTarget getClientChunk(int port) {
+    }
+
+    static WebTarget getClientChunk(int port) {
         return getClient(port, trustStore(), http2ClientConfig().property(ClientProperties.REQUEST_ENTITY_PROCESSING, "CHUNKED"));
     }
 
@@ -103,7 +103,9 @@ class JettyServerTest {
                 assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
             }
         }
-    }    @Test
+    }
+
+    @Test
     @Timeout(20)
     void testPostChunk() throws Exception {
         int port = PORT;
@@ -136,6 +138,7 @@ class JettyServerTest {
             }
         }
     }
+
     @Test
     @Timeout(20)
     void testPostAsyncChunk() throws Exception {
@@ -174,7 +177,9 @@ class JettyServerTest {
                 assertEquals(data, response.readEntity(DummyRestService.Data.class).getData());
             }
         }
-    }    @Test
+    }
+
+    @Test
     @Timeout(20)
     void testPostStringChunk() throws Exception {
         int port = PORT;
@@ -219,6 +224,7 @@ class JettyServerTest {
             }
         }
     }
+
     @Test
     @Timeout(20)
     void testPostBytesChunk() throws Exception {
@@ -260,6 +266,7 @@ class JettyServerTest {
             }
         }
     }
+
     @Test
     @Timeout(20)
     void testMethodPostChunk() throws Exception {
@@ -303,7 +310,8 @@ class JettyServerTest {
         });
         assertEquals(ConnectException.class, processingException.getCause().getClass());
     }
-  @Test
+
+    @Test
     @Timeout(20)
     void testConnectTimeoutChunk() throws Exception {
         int port = PORT;
@@ -433,13 +441,9 @@ class JettyServerTest {
         int port = PORT;
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         for (int i = 0; i < 100; i++) {
-            try (
-                    @SuppressWarnings("unused") WeldContainer container = new Weld().initialize();
-                    AutoCloseable ignored = jerseyServer(port, tlsSecurityConfiguration, DummyRestService.class)
-            ) {
-                try (final var head = getClient(port).path(PING).request().head()) {
-                    assertEquals(204, head.getStatus());
-                }
+            try (var ignored = jerseyServer(port, tlsSecurityConfiguration, DummyRestService.class);
+                 var head = getClient(port).path(PING).request().head()) {
+                assertEquals(204, head.getStatus());
             }
         }
     }
