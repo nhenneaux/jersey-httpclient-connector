@@ -121,9 +121,14 @@ public class HttpClientConnector implements Connector {
     private ClientResponse toJerseyResponse(ClientRequest clientRequest, HttpResponse<InputStream> inputStreamHttpResponse) {
         final Response.StatusType responseStatus = Statuses.from(inputStreamHttpResponse.statusCode());
         final ClientResponse jerseyResponse = new ClientResponse(responseStatus, clientRequest);
-        final InputStream entityStream = inputStreamHttpResponse.body();
-        jerseyResponse.setEntityStream(entityStream);
-        inputStreamHttpResponse.headers().map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
+        final var headers = inputStreamHttpResponse.headers();
+
+        final var contentLengthHeader = headers.firstValueAsLong("content-length");
+        if ((contentLengthHeader.isEmpty() || contentLengthHeader.getAsLong() > 0) && inputStreamHttpResponse.statusCode() != Response.Status.NO_CONTENT.getStatusCode()) {
+            final InputStream entityStream = inputStreamHttpResponse.body();
+            jerseyResponse.setEntityStream(entityStream);
+        }
+        headers.map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
         return jerseyResponse;
     }
 

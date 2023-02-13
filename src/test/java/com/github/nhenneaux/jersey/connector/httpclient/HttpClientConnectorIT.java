@@ -42,6 +42,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 @Tag("unstableGithub")
@@ -176,7 +177,9 @@ class HttpClientConnectorIT {
             assertEquals(200, response.getStatus());
             assertNotNull(response.readEntity(String.class));
         }
-    }    @Test
+    }
+
+    @Test
     void shouldWorkWithJaxRsClientWithPostChunk() {
         final Client client = ClientBuilder.newClient(new ClientConfig().property(ClientProperties.REQUEST_ENTITY_PROCESSING, "CHUNKED").connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
@@ -196,7 +199,9 @@ class HttpClientConnectorIT {
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
         response.close();
-    }    @Test
+    }
+
+    @Test
     void shouldWorkWithJaxRsClientWithMethodPostChunk() {
         final Client client = ClientBuilder.newClient(new ClientConfig().property(ClientProperties.REQUEST_ENTITY_PROCESSING, "CHUNKED").connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
@@ -217,6 +222,7 @@ class HttpClientConnectorIT {
             assertNotNull(response.readEntity(String.class));
         }
     }
+
     @Test
     void shouldWorkWithJaxRsClientWithJsonPostChunk() {
         final Client client = ClientBuilder.newClient(new ClientConfig().property(ClientProperties.REQUEST_ENTITY_PROCESSING, "CHUNKED").connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
@@ -238,12 +244,14 @@ class HttpClientConnectorIT {
         final Exception expectedException = Assertions.assertThrows(Exception.class,
                 () -> {
                     //noinspection EmptyTryBlock
-                    try (var ignored = request.post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE))){
+                    try (var ignored = request.post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE))) {
                         // nothing to do
                     }
                 });
         assertEquals(HttpConnectTimeoutException.class, expectedException.getCause().getClass());
-    }    @Test
+    }
+
+    @Test
     @Timeout(2L)
     void shouldWorkWithJaxRsClientWithJsonPostAndShortTimeoutChunk() {
         final Client client = ClientBuilder.newClient(new ClientConfig().property(ClientProperties.REQUEST_ENTITY_PROCESSING, "CHUNKED").connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
@@ -253,11 +261,32 @@ class HttpClientConnectorIT {
         final Exception expectedException = Assertions.assertThrows(Exception.class,
                 () -> {
                     //noinspection EmptyTryBlock
-                    try (var ignored = request.post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE))){
+                    try (var ignored = request.post(Entity.entity(JSON, MediaType.APPLICATION_JSON_TYPE))) {
                         // nothing to do
                     }
                 });
         assertEquals(HttpConnectTimeoutException.class, expectedException.getCause().getClass());
+    }
+
+    @Test
+    void shouldWorkWithEmptyResponse() {
+        try (Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
+             final Response response = client.target("https://httpstat.us")
+                     .path("204").request().get()) {
+            assertEquals(204, response.getStatus());
+            assertNull(response.readEntity(Object.class));
+        }
+    }
+
+    @Test
+    void shouldWorkWithEmptyResponseAndCode205() {
+        try (Client client = ClientBuilder.newClient(new ClientConfig().connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
+             final Response response = client.target("https://httpstat.us")
+                     .path("205").request().get()) {
+            assertEquals("0", response.getHeaderString("content-length"));
+            assertEquals(205, response.getStatus());
+            assertNull(response.readEntity(Object.class));
+        }
     }
 
     @Test
@@ -341,7 +370,9 @@ class HttpClientConnectorIT {
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
-    }    @Test
+    }
+
+    @Test
     void shouldWorkWithJaxRsClientWithJsonPostAsyncChunk() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().property(ClientProperties.REQUEST_ENTITY_PROCESSING, "CHUNKED").connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
@@ -359,7 +390,9 @@ class HttpClientConnectorIT {
         final Response response = responseFuture.get(2, TimeUnit.SECONDS);
         assertEquals(200, response.getStatus());
         assertNotNull(response.readEntity(String.class));
-    } @Test
+    }
+
+    @Test
     void shouldWorkWithJaxRsClientWithJsonPostAsyncWithCallbackChunk() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().property(ClientProperties.REQUEST_ENTITY_PROCESSING, "CHUNKED").connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
         final WebTarget target = client.target(HTTPS_DEVOXX_BE);
@@ -395,6 +428,7 @@ class HttpClientConnectorIT {
         assertEquals(200, objectAtomicReference.get().getStatus());
         assertNotNull(response.readEntity(String.class));
     }
+
     @Test
     void shouldWorkWithJaxRsClientWithJsonPostAsyncWithCallbackCheckChunk() throws ExecutionException, InterruptedException, TimeoutException {
         final Client client = ClientBuilder.newClient(new ClientConfig().property(ClientProperties.REQUEST_ENTITY_PROCESSING, "CHUNKED").connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build())));
@@ -445,7 +479,9 @@ class HttpClientConnectorIT {
             assertEquals(200, response.getStatus());
             assertNotNull(response.readEntity(String.class));
         }
-    }    @Test
+    }
+
+    @Test
     void shouldWorkWithJaxRsClientWithStreamPostChunk() throws IOException {
         final ClientConfig configuration = new ClientConfig().property(ClientProperties.REQUEST_ENTITY_PROCESSING, "CHUNKED").connectorProvider((jaxRsClient, config) -> new HttpClientConnector(HttpClient.newBuilder().sslContext(jaxRsClient.getSslContext()).build()));
         configuration.register(MultiPartFeature.class);
