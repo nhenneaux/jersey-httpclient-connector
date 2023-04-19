@@ -127,6 +127,13 @@ public class HttpClientConnector implements Connector {
         if ((contentLengthHeader.isEmpty() || contentLengthHeader.getAsLong() > 0) && inputStreamHttpResponse.statusCode() != Response.Status.NO_CONTENT.getStatusCode()) {
             final InputStream entityStream = inputStreamHttpResponse.body();
             jerseyResponse.setEntityStream(entityStream);
+        } else {
+            //noinspection EmptyTryBlock
+            try (var ignored = inputStreamHttpResponse.body()) {
+                // nothing to do
+            } catch (IOException e) {
+                // ignored exception since stream is not used
+            }
         }
         headers.map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
         return jerseyResponse;
@@ -238,7 +245,7 @@ public class HttpClientConnector implements Connector {
     }
 
     private static Void writeEntity(ClientRequest clientRequest, Runnable onError) {
-        try {
+        try (var ignoredOnlyForClose = clientRequest.getEntityStream()) {
             clientRequest.writeEntity();
             return null;
         } catch (IOException e) {
