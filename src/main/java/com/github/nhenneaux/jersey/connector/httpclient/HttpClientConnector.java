@@ -215,6 +215,9 @@ public class HttpClientConnector implements Connector {
                 asyncConnectorCallback.response(response);
             } else {
                 asyncConnectorCallback.failure(cause);
+                if (response != null) {
+                    response.close();
+                }
             }
         });
         return clientResponseCompletableFuture;
