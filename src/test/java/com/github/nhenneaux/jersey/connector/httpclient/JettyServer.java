@@ -10,6 +10,7 @@ import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.MultiException;
@@ -45,13 +46,15 @@ public class JettyServer implements AutoCloseable {
 
     JettyServer(int port, TlsSecurityConfiguration tlsSecurityConfiguration, Class<?>... serviceClasses) {
         this.server = new Server();
+        var contexts = new ContextHandlerCollection();
+        server.setHandler(contexts);
         ServerConnector http2Connector =
                 new ServerConnector(server, getConnectionFactories(tlsSecurityConfiguration));
         http2Connector.setPort(port);
         server.addConnector(http2Connector);
 
-        ServletContextHandler context = new ServletContextHandler(server, "/");
-
+        ServletContextHandler context = new ServletContextHandler(server,"/");
+        contexts.addHandler(context);
         final ResourceConfig resourceConfig = new ResourceConfig();
         for (Class<?> serviceClass : serviceClasses) {
             resourceConfig.register(serviceClass);
@@ -70,7 +73,7 @@ public class JettyServer implements AutoCloseable {
                 MultiException multiException = new MultiException();
                 multiException.add(e);
                 multiException.add(closeException);
-                throw new IllegalStateException(multiException);
+                multiException.ifExceptionThrowRuntime();
             }
             throw new IllegalStateException(e);
         }

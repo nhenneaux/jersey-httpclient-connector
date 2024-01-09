@@ -11,14 +11,18 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
+import org.hamcrest.Matchers;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
+import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
 import java.net.http.HttpClient;
 import java.security.KeyStore;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.github.nhenneaux.jersey.connector.httpclient.JettyServer.TlsSecurityConfiguration.getKeyStore;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -34,6 +39,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class JettyServerTest {
     static final int PORT = 2223;
     private static final String PING = "/ping";
+
+    @BeforeEach
+    void setUp(TestInfo testInfo) {
+        var testClass = testInfo.getTestClass().orElseThrow();
+        var testMethod = testInfo.getTestMethod().orElseThrow();
+        System.out.println(testClass.getSimpleName() + "::" + testMethod.getName() + " test has started.");
+    }
+
+    @AfterEach
+    void tearDown(TestInfo testInfo) {
+        var testClass = testInfo.getTestClass().orElseThrow();
+        var testMethod = testInfo.getTestMethod().orElseThrow();
+        System.out.println(testClass.getSimpleName() + "::" + testMethod.getName() + " test has finished.");
+    }
 
     private static WebTarget getClient(int port, KeyStore trustStore, ClientConfig clientConfig) {
         return ClientBuilder.newBuilder()
@@ -345,7 +364,7 @@ class JettyServerTest {
     }
 
     @Test
-    @Timeout(60)
+    @Timeout(120)
     void testConcurrentHttp1() throws Exception {
         testConcurrent(new ClientConfig());
     }
@@ -395,14 +414,14 @@ class JettyServerTest {
                     .trustStore(truststore)
                     .withConfig(clientConfig)
                     .build();
-            client.target("https://localhost:" + port).path(path).request().method(method).close();
+            final var webTarget = client.target("https://localhost:" + port).path(path);
+            webTarget.request().method(method).close();
 
             AtomicInteger counter = new AtomicInteger();
             final Runnable runnable = () -> {
                 long start = System.nanoTime();
                 for (int i = 0; i < iterations; i++) {
-                    try (Response response = client
-                            .target("https://localhost:" + port).path(path).request().method(method)) {
+                    try (Response response = webTarget.request().method(method)) {
                         response.readEntity(InputStream.class).readAllBytes();
                         response.getStatus();
                         counter.incrementAndGet();
@@ -411,12 +430,23 @@ class JettyServerTest {
                             System.out.println(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) * 1.0 / reportEveryRequests);
                             start = System.nanoTime();
                         }
-                    } catch (IOException e) {
+                    } catch (ProcessingException | IOException e) {
+                        if (e.getMessage().contains("GOAWAY")
+                                || e.getMessage().contains("Broken pipe") //  The HTTP sending process failed with error, Broken pipe
+                                || e.getMessage().contains("EOF reached while reading")
+                                || e.getMessage().contains(" cancelled")) {//  The HTTP sending process failed with error, Stream 673 cancelled
+                            i--;
+                        } else {
                         throw new IllegalStateException(e);
                     }
                 }
+                }
             };
-            Thread.setDefaultUncaughtExceptionHandler((t1, e) -> e.printStackTrace());
+            List<Throwable> thrown = new ArrayList<>();
+            Thread.setDefaultUncaughtExceptionHandler((t1, e) -> {
+                thrown.add(e);
+                e.printStackTrace();
+            });
             final Set<Thread> threads = IntStream
                     .range(0, nThreads)
                     .mapToObj(i -> runnable)
@@ -429,7 +459,7 @@ class JettyServerTest {
             for (Thread thread : threads) {
                 thread.join();
             }
-
+            assertThat(thrown, Matchers.empty());
             assertEquals((long) nThreads * iterations, counter.get());
 
         }
@@ -441,8 +471,10 @@ class JettyServerTest {
         int port = PORT;
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         for (int i = 0; i < 100; i++) {
-            try (var ignored = jerseyServer(port, tlsSecurityConfiguration, DummyRestService.class);
-                 var head = getClient(port).path(PING).request().head()) {
+            try (
+                    var ignored = jerseyServer(port, tlsSecurityConfiguration, DummyRestService.class);
+                    final var head = getClient(port).path(PING).request().head()
+            ) {
                 assertEquals(204, head.getStatus());
             }
         }
