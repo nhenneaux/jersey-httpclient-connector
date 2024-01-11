@@ -6,7 +6,6 @@ import org.glassfish.jersey.client.ClientRequest;
 import org.glassfish.jersey.client.ClientResponse;
 import org.glassfish.jersey.client.spi.AsyncConnectorCallback;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 import javax.net.ssl.SSLContext;

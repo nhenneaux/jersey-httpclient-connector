@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.connector.httpclient</groupId>
     <artifactId>jersey-httpclient-connector</artifactId>
-    <version>0.3.5</version>
+    <version>0.3.6</version>
 
     <name>Jersey Connector using java.net.http.HttpClient</name>
     <description>A Jersey connector using java.net.http.HttpClient and supporting HTTP/1.1 and HTTP/2.0 with the same client. The protocol is selected based on the server capabilities.</description>
@@ -22,11 +22,11 @@
         <sonar.organization>nhenneaux</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
 
-        <jersey.version>2.37</jersey.version>
+        <jersey.version>2.41</jersey.version>
 
-        <jetty.version>9.4.49.v20220914</jetty.version>
+        <jetty.version>9.4.53.v20231009</jetty.version>
         <weld-se-core.version>3.1.9.Final</weld-se-core.version>
-        <log4j.version>2.19.0</log4j.version>
+        <log4j.version>2.22.1</log4j.version>
     </properties>
 
     <dependencies>
@@ -104,7 +104,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>2.0.2</version>
+            <version>2.0.11</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -129,7 +129,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.9.0</version>
+            <version>5.10.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -141,7 +141,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>4.8.0</version>
+            <version>5.8.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -149,7 +149,7 @@
         <dependency>
             <groupId>org.glassfish.jaxb</groupId>
             <artifactId>jaxb-runtime</artifactId>
-            <version>2.3.6</version>
+            <version>2.3.8</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -159,7 +159,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.8</version>
+                <version>0.8.10</version>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>
@@ -226,7 +226,7 @@
                             <goal>sign</goal>
                         </goals>
                         <configuration>
-                            <keyname>24CB0C2DAB84FC5C84BC0631A41ACFF32C0A49B9</keyname>
+                            <keyname>8C334D53759C56CAFF1B5E9BBE0ED98B46B1B2EA</keyname>
                             <!-- Configuration to prevent the 'Signing Prompt' or the  -->
                             <!-- 'gpg: signing failed: No such file or directory' error -->
                             <!-- See https://myshittycode.com/2017/08/07/maven-gpg-plugin-prevent-signing-prompt-or-gpg-signing-failed-no-such-file-or-directory-error/ -->
@@ -272,9 +272,8 @@
             <plugins>
 
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.10.1</version>
+                    <version>3.12.1</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-source-plugin</artifactId>
@@ -282,29 +281,26 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.4.1</version>
+                    <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-deploy-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.1.1</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.3.0</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>2.22.2</version>
+                    <version>3.2.5</version>
                     <configuration>
                         <trimStackTrace>false</trimStackTrace>
                     </configuration>
                 </plugin>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.22.2</version>
+                    <version>3.2.5</version>
                     <configuration>
                         <trimStackTrace>false</trimStackTrace>
                     </configuration>
@@ -343,7 +339,7 @@
     <developers>
         <developer>
             <name>Nicolas Henneaux</name>
-            <email>nicolas.henneaux@gmail.com</email>
+            <email>nicolas@henneaux.io</email>
             <roles>
                 <role>Lead maintainer</role>
             </roles>
