@@ -57,10 +57,14 @@ public class HttpClientConnector implements Connector {
 
     private static final Runnable NO_OP = () -> {
     };
-    private final HttpClient httpClient;
+    private final Supplier<HttpClient> httpClientSupplier;
 
     public HttpClientConnector(HttpClient httpClient) {
-        this.httpClient = httpClient;
+        this(() -> httpClient);
+    }
+
+    public HttpClientConnector(Supplier<HttpClient> httpClientSupplier) {
+        this.httpClientSupplier = httpClientSupplier;
     }
 
     public HttpClientConnector(Client jaxRsClient, Configuration configuration) {
@@ -73,10 +77,11 @@ public class HttpClientConnector implements Connector {
                 .map(URI::create)
                 .ifPresent(proxyUri -> builder.proxy(ProxySelector.of(InetSocketAddress.createUnresolved(proxyUri.getHost(), proxyUri.getPort()))));
 
-        this.httpClient = getDurationTimeout(configuration, CONNECT_TIMEOUT)
+        final var client = getDurationTimeout(configuration, CONNECT_TIMEOUT)
                 .map(builder::connectTimeout)
                 .orElse(builder)
                 .build();
+        this.httpClientSupplier = () -> client;
     }
 
     static <R> R handleInterruption(Interruptable<R> interruptable) {
@@ -112,9 +117,9 @@ public class HttpClientConnector implements Connector {
     HttpResponse<InputStream> send(HttpRequest request) {
         return handleInterruption(() -> {
             try {
-                return httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+                return getHttpClient().send(request, HttpResponse.BodyHandlers.ofInputStream());
             } catch (IOException e) {
-                throw new ProcessingException("The async sending process failed with error, " + e.getMessage(), e);
+                throw new ProcessingException("The HTTP sending process failed with error, " + e.getMessage(), e);
             }
         });
     }
@@ -122,9 +127,21 @@ public class HttpClientConnector implements Connector {
     private ClientResponse toJerseyResponse(ClientRequest clientRequest, HttpResponse<InputStream> inputStreamHttpResponse) {
         final Response.StatusType responseStatus = Statuses.from(inputStreamHttpResponse.statusCode());
         final ClientResponse jerseyResponse = new ClientResponse(responseStatus, clientRequest);
+        final var headers = inputStreamHttpResponse.headers();
+
+        final var contentLengthHeader = headers.firstValueAsLong("content-length");
+        if ((contentLengthHeader.isEmpty() || contentLengthHeader.getAsLong() > 0) && inputStreamHttpResponse.statusCode() != Response.Status.NO_CONTENT.getStatusCode()) {
         final InputStream entityStream = inputStreamHttpResponse.body();
         jerseyResponse.setEntityStream(entityStream);
-        inputStreamHttpResponse.headers().map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
+        } else {
+            //noinspection EmptyTryBlock
+            try (var ignored = inputStreamHttpResponse.body()) {
+                // nothing to do
+            } catch (IOException e) {
+                // ignored exception since stream is not used
+            }
+        }
+        headers.map().forEach((name, values) -> values.forEach(value -> jerseyResponse.header(name, value)));
         return jerseyResponse;
     }
 
@@ -135,7 +152,7 @@ public class HttpClientConnector implements Connector {
     }
 
     private CompletableFuture<HttpResponse<InputStream>> getSendAsync(HttpRequest request) {
-        final var httpResponseCompletableFuture = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream());
+        final var httpResponseCompletableFuture = getHttpClient().sendAsync(request, HttpResponse.BodyHandlers.ofInputStream());
         return futureTimeout(request, httpResponseCompletableFuture);
     }
 
@@ -199,6 +216,9 @@ public class HttpClientConnector implements Connector {
                 asyncConnectorCallback.response(response);
             } else {
                 asyncConnectorCallback.failure(cause);
+                if (response != null) {
+                    response.close();
+                }
             }
         });
         return clientResponseCompletableFuture;
@@ -230,11 +250,11 @@ public class HttpClientConnector implements Connector {
     }
 
     private <T> CompletableFuture<T> supplyAsync(HttpRequest httpRequest, Supplier<T> entityWriter) {
-        return futureTimeout(httpRequest, httpClient.executor().map(executor -> CompletableFuture.supplyAsync(entityWriter, executor)).orElseGet(() -> CompletableFuture.supplyAsync(entityWriter)));
+        return futureTimeout(httpRequest, getHttpClient().executor().map(executor -> CompletableFuture.supplyAsync(entityWriter, executor)).orElseGet(() -> CompletableFuture.supplyAsync(entityWriter)));
     }
 
     private static Void writeEntity(ClientRequest clientRequest, Runnable onError) {
-        try {
+        try (var ignoredOnlyForClose = clientRequest.getEntityStream()) {
             clientRequest.writeEntity();
             return null;
         } catch (IOException e) {
@@ -244,7 +264,7 @@ public class HttpClientConnector implements Connector {
     }
 
     public HttpClient getHttpClient() {
-        return httpClient;
+        return httpClientSupplier.get();
     }
 
     @Override
