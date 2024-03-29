@@ -3,13 +3,7 @@ package com.github.nhenneaux.jersey.connector.httpclient;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
-import org.eclipse.jetty.server.ConnectionFactory;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -53,7 +47,7 @@ public class JettyServer implements AutoCloseable {
         http2Connector.setPort(port);
         server.addConnector(http2Connector);
 
-        ServletContextHandler context = new ServletContextHandler(server,"/");
+        ServletContextHandler context = new ServletContextHandler(server, "/");
         contexts.addHandler(context);
         final ResourceConfig resourceConfig = new ResourceConfig();
         for (Class<?> serviceClass : serviceClasses) {
