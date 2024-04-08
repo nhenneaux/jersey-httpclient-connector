@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
 import org.hamcrest.Matchers;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
@@ -365,8 +366,11 @@ class JettyServerTest {
 
     @Test
     @Timeout(120)
-    void testConcurrentHttp1() throws Exception {
-        testConcurrent(new ClientConfig());
+    void testConcurrentHttpUrlConnectionHttp1() throws Exception {
+        if (!System.getProperty("os.name").toLowerCase().contains("mac")) { // Broken on MacOS with java.net.SocketException: Too many open files
+            testConcurrent(new ClientConfig()
+                    .connectorProvider(new HttpUrlConnectorProvider()));
+        }
     }
 
     @Test
