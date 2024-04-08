@@ -421,8 +421,7 @@ class JettyServerTest {
     @Timeout(120)
     void testConcurrentHttpUrlConnectionHttp1() throws Exception {
         if (!System.getProperty("os.name").toLowerCase().contains("mac")) { // Broken on MacOS with java.net.SocketException: Too many open files
-            testConcurrent(new ClientConfig()
-                    .connectorProvider(new HttpUrlConnectorProvider()));
+            testConcurrent(new ClientConfig());
         }
     }
 
