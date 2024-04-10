@@ -40,17 +40,19 @@ import static org.glassfish.jersey.client.ClientProperties.READ_TIMEOUT;
  * Jersey connector for java.net.http.HttpClient.
  * <p>
  * To build a JAX-RS client, you can use the following.
- * <pre><code>
+ * <pre>
+ * {@code
  * var client = ClientBuilder.newClient(new ClientConfig().connectorProvider(HttpClientConnector::new))
- * </code></pre>
+ * }</pre>
  * If you want to customise the Java HTTP client you are using, you can use the following.
- * <pre><code>
+ * <pre>
+ * {@code
  * var httpClient = HttpClient.newHttpClient();
  * var client = ClientBuilder.newClient(
  *                             new ClientConfig()
  *                               .connectorProvider(
  *                                  (jaxRsClient, config) ->  new HttpClientConnector(httpClient)))
- * </code></pre>
+ * }</pre>
  */
 public class HttpClientConnector implements Connector {
 
