@@ -32,6 +32,7 @@ import static com.github.nhenneaux.jersey.connector.httpclient.JettyServer.TlsSe
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import javax.net.ServerSocketFactory;
 import java.util.function.IntPredicate;
 
@@ -419,10 +420,9 @@ class JettyServerTest {
 
     @Test
     @Timeout(120)
+    @Tag("unstableGithub")
     void testConcurrentHttpUrlConnectionHttp1() throws Exception {
-        if (!System.getProperty("os.name").toLowerCase().contains("mac")) { // Broken on MacOS with java.net.SocketException: Too many open files
-            testConcurrent(new ClientConfig());
-        }
+        testConcurrent(new ClientConfig());
     }
 
     @Test
@@ -493,9 +493,9 @@ class JettyServerTest {
                                 || e.getMessage().contains(" cancelled")) {//  The HTTP sending process failed with error, Stream 673 cancelled
                             i--;
                         } else {
-                        throw new IllegalStateException(e);
+                            throw new IllegalStateException(e);
+                        }
                     }
-                }
                 }
             };
             List<Throwable> thrown = new ArrayList<>();
