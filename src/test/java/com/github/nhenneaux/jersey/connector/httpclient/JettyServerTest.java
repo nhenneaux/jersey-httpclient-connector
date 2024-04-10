@@ -11,9 +11,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
 import org.hamcrest.Matchers;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
@@ -21,10 +20,9 @@ import java.io.InputStream;
 import java.net.ConnectException;
 import java.net.http.HttpClient;
 import java.security.KeyStore;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -35,9 +33,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import javax.net.ServerSocketFactory;
+import java.util.function.IntPredicate;
+
+
 @SuppressWarnings("squid:S00112")
 class JettyServerTest {
-    static final int PORT = 2223;
+    private static final Set<Integer> alreadyProvidedPort = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final String PING = "/ping";
 
     @BeforeEach
@@ -53,6 +55,59 @@ class JettyServerTest {
         var testMethod = testInfo.getTestMethod().orElseThrow();
         System.out.println(testClass.getSimpleName() + "::" + testMethod.getName() + " test has finished.");
     }
+
+    /**
+     * Return an available (not used by another process) port between 49152 and 65535.
+     * Beware, that the port can be used by another thread between the check this method is doing and its usage by the caller. This means that this method only provide a light guarantee about the availability of the port.
+     *
+     * @return a port between 49152 and 65535
+     */
+    @SuppressWarnings({"findsecbugs:PREDICTABLE_RANDOM", "java:S2245"})
+    // "The use of java.util.concurrent.ThreadLocalRandom is predictable"
+    // This is not a cryptography/secure logic, so we ignore this warning
+    public static int findAvailablePort() {
+        final IntStream interval = ThreadLocalRandom.current().ints(49152, 65535);
+        return findAvailablePort(interval);
+    }
+
+    static int findAvailablePort(final IntStream interval) {
+        return findAvailablePort(interval, new AvailablePortTester());
+    }
+
+    static int findAvailablePort(final IntStream interval, final IntPredicate predicate) {
+        return interval
+                .filter(predicate)
+                .filter(alreadyProvidedPort::add)
+                .findFirst()
+                .orElseThrow(IllegalStateException::new);
+    }
+
+    static class AvailablePortTester implements IntPredicate {
+
+        private final ServerSocketFactory factory;
+
+        private AvailablePortTester() {
+            this(ServerSocketFactory.getDefault());
+        }
+
+        AvailablePortTester(final ServerSocketFactory factory) {
+            this.factory = factory;
+        }
+
+
+        @Override
+        @SuppressWarnings("squid:S1166")
+        public boolean test(final int port) {
+            try {
+                factory.createServerSocket(port).close();
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
+        }
+
+    }
+
 
     private static WebTarget getClient(int port, KeyStore trustStore, ClientConfig clientConfig) {
         return ClientBuilder.newBuilder()
@@ -95,7 +150,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testValidTls() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -110,7 +165,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testPost() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -127,7 +182,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testPostChunk() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -144,7 +199,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testPostAsync() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -161,7 +216,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testPostAsyncChunk() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -178,7 +233,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testPostString() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -201,7 +256,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testPostStringChunk() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -224,7 +279,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testPostBytes() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -247,7 +302,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testPostBytesChunk() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -271,7 +326,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testMethodPost() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -289,7 +344,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testMethodPostChunk() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -307,7 +362,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testConnectTimeout() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         //noinspection EmptyTryBlock
         try (AutoCloseable ignored = jerseyServer(
@@ -333,7 +388,7 @@ class JettyServerTest {
     @Test
     @Timeout(20)
     void testConnectTimeoutChunk() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         //noinspection EmptyTryBlock
         try (AutoCloseable ignored = jerseyServer(
@@ -365,7 +420,8 @@ class JettyServerTest {
 
     @Test
     @Timeout(120)
-    void testConcurrentHttp1() throws Exception {
+    @Tag("unstableGithub")
+    void testConcurrentHttpUrlConnectionHttp1() throws Exception {
         testConcurrent(new ClientConfig());
     }
 
@@ -400,7 +456,7 @@ class JettyServerTest {
     }
 
     private void testConcurrent(ClientConfig clientConfig, String method, String path) throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         final KeyStore truststore = trustStore();
         try (AutoCloseable ignored = jerseyServer(
@@ -437,9 +493,9 @@ class JettyServerTest {
                                 || e.getMessage().contains(" cancelled")) {//  The HTTP sending process failed with error, Stream 673 cancelled
                             i--;
                         } else {
-                        throw new IllegalStateException(e);
+                            throw new IllegalStateException(e);
+                        }
                     }
-                }
                 }
             };
             List<Throwable> thrown = new ArrayList<>();
@@ -468,7 +524,7 @@ class JettyServerTest {
 
     @Test
     void shouldWorkInLoop() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         for (int i = 0; i < 100; i++) {
             try (
