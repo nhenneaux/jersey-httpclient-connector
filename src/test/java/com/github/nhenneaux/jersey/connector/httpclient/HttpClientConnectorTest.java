@@ -149,10 +149,6 @@ class HttpClientConnectorTest {
     }
 
 
-
-
-
-
     @Test
     void shouldHandleCallbackOnFailure() {
         // Given
