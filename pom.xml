@@ -27,7 +27,7 @@
         <jersey.version>3.1.11</jersey.version>
         <jetty.version>12.1.1</jetty.version>
         <weld-se-core.version>6.0.3.Final</weld-se-core.version>
-        <log4j.version>2.25.3</log4j.version>
+        <log4j.version>2.25.4</log4j.version>
         <slf4j-api.version>2.0.17</slf4j-api.version>
         <junit-jupiter.version>5.11.4</junit-jupiter.version>
         <awaitility.version>4.3.0</awaitility.version>
