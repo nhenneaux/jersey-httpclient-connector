@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.connector.httpclient</groupId>
     <artifactId>jersey-httpclient-connector</artifactId>
-    <version>1.1.20</version>
+    <version>1.2.0</version>
 
     <name>Jersey Connector using java.net.http.HttpClient</name>
     <description>A Jersey connector using java.net.http.HttpClient and supporting HTTP/1.1 and HTTP/2.0 with the same
@@ -16,15 +16,15 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
 
         <skipRelease>true</skipRelease>
         <sonar.projectKey>nhenneaux_jersey-httpclient-connector</sonar.projectKey>
         <sonar.organization>nhenneaux</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
 
-        <jersey.version>3.1.12</jersey.version>
+        <jersey.version>4.0.2</jersey.version>
         <jetty.version>12.1.10</jetty.version>
         <weld-se-core.version>6.0.4.Final</weld-se-core.version>
         <log4j.version>2.26.0</log4j.version>
