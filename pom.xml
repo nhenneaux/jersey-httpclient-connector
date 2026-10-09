@@ -24,7 +24,7 @@
         <sonar.organization>nhenneaux</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
 
-        <jersey.version>4.0.2</jersey.version>
+        <jersey.version>4.0.3</jersey.version>
         <jetty.version>12.1.13</jetty.version>
         <weld-se-core.version>6.0.4.Final</weld-se-core.version>
         <log4j.version>2.26.1</log4j.version>
