@@ -173,7 +173,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.3</version>
+                <version>3.7.0</version>
                 <executions>
                     <execution>
                         <id>enforce</id>
@@ -181,7 +181,7 @@
                             <rules>
                                 <dependencyConvergence/>
                                 <requireMavenVersion>
-                                    <version>3.6.3</version>
+                                    <version>3.7.0</version>
                                 </requireMavenVersion>
                             </rules>
                         </configuration>
