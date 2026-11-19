@@ -60,16 +60,13 @@ class HttpClientConnectorTest {
         final HttpRequest httpRequest = mock(HttpRequest.class);
         @SuppressWarnings("unchecked") final HttpResponse<InputStream> httpResponse = mock(HttpResponse.class);
         final CompletableFuture<HttpResponse<InputStream>> responseFuture = CompletableFuture.completedFuture(httpResponse);
-        when(httpClient.sendAsync(eq(httpRequest), any(IS_HANDLER_CLASS))).thenReturn(responseFuture);
         final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
 
         final HttpRequest.Builder requestBuilder = mock(HttpRequest.Builder.class);
         final HttpRequest.Builder requestBuilderWithMethod = mock(HttpRequest.Builder.class);
         final ClientRequest clientRequest = mock(ClientRequest.class);
         final String method = "POST";
-        when(clientRequest.getMethod()).thenReturn(method);
-        when(requestBuilder.method(eq(method), any(IS_PUBLISHER_CLASS))).thenReturn(requestBuilderWithMethod);
-        when(requestBuilderWithMethod.build()).thenReturn(httpRequest);
+        setupHttpClientSendAsyncAndBuildAndGetMethodAnd1MoreStubs(httpClient, httpRequest, responseFuture, clientRequest, method, requestBuilder, requestBuilderWithMethod);
         // When
         final CompletableFuture<HttpResponse<InputStream>> httpResponseCompletableFuture = httpClientConnector.streamRequestBody(clientRequest, requestBuilder, ignored -> CompletableFuture.completedFuture(httpResponse), method);
 
@@ -98,16 +95,13 @@ class HttpClientConnectorTest {
         final HttpClient httpClient = mock(HttpClient.class);
         final HttpRequest httpRequest = mock(HttpRequest.class);
         final CompletableFuture<HttpResponse<InputStream>> responseFuture = CompletableFuture.completedFuture(null);
-        when(httpClient.sendAsync(eq(httpRequest), any(IS_HANDLER_CLASS))).thenReturn(responseFuture);
         final HttpClientConnector httpClientConnector = new HttpClientConnector(httpClient);
 
         final HttpRequest.Builder requestBuilder = mock(HttpRequest.Builder.class);
         final HttpRequest.Builder requestBuilderWithMethod = mock(HttpRequest.Builder.class);
         final ClientRequest clientRequest = mock(ClientRequest.class);
         final String method = "POST";
-        when(clientRequest.getMethod()).thenReturn(method);
-        when(requestBuilder.method(eq(method), any(IS_PUBLISHER_CLASS))).thenReturn(requestBuilderWithMethod);
-        when(requestBuilderWithMethod.build()).thenReturn(httpRequest);
+        setupHttpClientSendAsyncAndBuildAndGetMethodAnd1MoreStubs(httpClient, httpRequest, responseFuture, clientRequest, method, requestBuilder, requestBuilderWithMethod);
         final IOException ioException = new IOException(UUID.randomUUID().toString());
         doThrow(ioException).when(clientRequest).writeEntity();
 
@@ -188,5 +182,12 @@ class HttpClientConnectorTest {
         assertEquals(1, proxies.size());
         final Proxy proxy = proxies.get(0);
         assertThat(proxy.address().toString(), anyOf(equalTo("my.gateway.io:3129"), equalTo("my.gateway.io/<unresolved>:3129")));
+    }
+
+    private void setupHttpClientSendAsyncAndBuildAndGetMethodAnd1MoreStubs(HttpClient httpClient, HttpRequest httpRequest, CompletableFuture<HttpResponse<InputStream>> responseFuture, ClientRequest clientRequest, String method, HttpRequest.Builder requestBuilder, HttpRequest.Builder requestBuilderWithMethod) {
+        when(httpClient.sendAsync(eq(httpRequest), any(IS_HANDLER_CLASS))).thenReturn(responseFuture);
+        when(clientRequest.getMethod()).thenReturn(method);
+        when(requestBuilder.method(eq(method), any(IS_PUBLISHER_CLASS))).thenReturn(requestBuilderWithMethod);
+        when(requestBuilderWithMethod.build()).thenReturn(httpRequest);
     }
 }
